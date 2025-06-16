@@ -11,7 +11,7 @@
 {
   "success": true,
   "data": { ... },
-  "request_id": "<X-Request-Id>"
+ 
 }
 
 // 失败响应
@@ -21,8 +21,7 @@
     "code": "ERROR_CODE",
     "message": "错误描述",
     "details": { ... }
-  },
-  "request_id": "<X-Request-Id>"
+  } 
 }
 ```
 
@@ -48,7 +47,8 @@
 
 ```json
 {
-  "success": true,
+  "code": 1,
+  "msg": "success",
   "data": {
     "task_id": "task_20231015001",
     "trigger_time": 1697347200,
@@ -62,17 +62,11 @@
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "TASK_IN_PROGRESS",
-    "message": "该scrapy_id关联的任务尚未完成",
-    "details": {
-      "active_task_id": "task_20231014999",
-      "scrapy_id": "lawyer_scraper_v2"
-    }
-  } 
+  "code": 400,
+  "msg":"{scrapy_id}关联的其他任务尚未结束"
 }
 ```
+
 
 ---
 
@@ -90,7 +84,8 @@
 
 ```json
 {
-  "success": true,
+  "code": 1,
+  "msg": "success",
   "data": {
     "task_id": "sync_20231015001",
     "trigger_time": 1697347200,
@@ -102,16 +97,10 @@
 * **失败响应**：
 
 ```json
+
 {
-  "success": false,
-  "error": {
-    "code": "NO_DATA_TO_SYNC",
-    "message": "可同步的数据为0",
-    "details": {
-      "sync_type": "lawyer",
-      "record_count": 0
-    }
-  } 
+  "code": 400,
+  "msg":"可同步的数据为:0"
 }
 ```
 
@@ -125,7 +114,8 @@
 
 ```json
 {
-  "success": true,
+  "code": 1,
+  "msg": "success",
   "data": {
     "task_id": "task_20231015001",
     "trigger_time": 1697347200,
@@ -146,15 +136,10 @@
 * **失败响应**：
 
 ```json
+
 {
-  "success": false,
-  "error": {
-    "code": "TASK_NOT_FOUND",
-    "message": "任务不存在",
-    "details": {
-      "task_id": "invalid_task_id"
-    }
-  } 
+  "code": 400,
+  "msg":"{task_id}对应任务不存在！"
 }
 ```
 
@@ -260,3 +245,4 @@
    * 合理建立索引，优化查询性能
 
  
+
