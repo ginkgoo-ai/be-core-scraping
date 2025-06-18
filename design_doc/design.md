@@ -41,7 +41,7 @@
  | 参数名       | 类型   | 必须 | 说明               | 
  |--------------|--------|------|--------------------|
   | `scrapy_id`  | string | 是   | 爬虫唯一标识       | 
-  | `source_url` | string | 是   | 目标爬取地址       |
+  | `scrapy_url` | string | 是   | 目标爬取地址       |
 
 * **响应示例**：
 
@@ -53,7 +53,7 @@
     "task_id": "task_20231015001",
     "trigger_time": 1697347200,
     "scrapy_id": "lawyer_scraper_v2",
-    "source_url": "https://example.com/lawyers"
+    "scrapy_url": "https://example.com/lawyers"
   } 
 }
 ```
@@ -120,7 +120,7 @@
     "task_id": "task_20231015001",
     "trigger_time": 1697347200,
     "scrapy_id": "lawyer_scraper_v2",
-    "source_url": "https://example.com/lawyers",
+    "scrapy_url": "https://example.com/lawyers",
     "sync_type": "lawyer",
     "status": "COMPLETED",
     "completion_time": 1697348000,

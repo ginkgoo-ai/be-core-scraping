@@ -2,13 +2,14 @@ import abc
 import requests
 from typing import Dict, Any, Optional
 from bs4 import BeautifulSoup
+from app.core.logger import logger
 
 class BaseCrawler(abc.ABC):
     """爬虫基类，定义所有爬虫必须实现的方法"""
     
-    def __init__(self, source_name: str, source_url: str):
-        self.source_name = source_name
-        self.source_url = source_url
+    def __init__(self, scrapy_url: str):
+        self.scrapy_url = scrapy_url
+        self.logger = logger
     
     @abc.abstractmethod
     async def crawl(self) -> Dict[str, Any]:
@@ -29,3 +30,11 @@ class BaseCrawler(abc.ABC):
     def _parse_html(self, html_content: str) -> BeautifulSoup:
         """解析HTML内容的辅助方法"""
         return BeautifulSoup(html_content, "html.parser")
+    
+    def handle_error(self, failure):
+        """统一错误处理方法"""
+        request = failure.request
+        self.logger.error(
+            f"请求失败: URL={request.url}, "
+            f"状态码={failure.value.response.status if hasattr(failure.value, 'response') else 'N/A'}"
+        )

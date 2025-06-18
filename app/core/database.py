@@ -1,21 +1,9 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base,sessionmaker
 from .config import settings
 
 # 创建数据库引擎
-# engine = create_engine(
-#     settings.DATABASE_URL,
-#     pool_pre_ping=True,
-#     pool_size=10,
-#     max_overflow=20
-# )
-# engine = create_engine(settings.DATABASE_URL)  
-engine = create_engine(
-    str(settings.DATABASE_URL),  # 转换为字符串
-    pool_pre_ping=True
-)
-# 创建会话工厂
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 创建基类模型
