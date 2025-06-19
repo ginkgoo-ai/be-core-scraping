@@ -50,7 +50,7 @@ class SyncTriggerResponse(BaseModel):
     sync_type: SyncType
 
 #  task 查询结构
-class TaskResponse(BaseModel):
+class TaskResponse(BaseModel,TimeConvertMixin):
     task_id: int
     start_time: int
     status: TaskStatus

@@ -3,6 +3,7 @@ from app.crawlers.base_crawler import BaseCrawler
 from typing import Dict, Any
 import importlib
 from app.models.data_model import Task, TaskType, TaskStatus, Company
+from app.services.data_storage import DataStorageService
 import time
 from app.core.logger import logger
 from datetime import datetime, timezone
@@ -65,6 +66,19 @@ class CrawlerTriggerService(TriggerService):
 
             # 执行爬取
             result = await crawler.crawl()
+            logger.info(f"待存储company: {len(result.get('companies', []))}条")
+            #数据存储：
+            storage_service = DataStorageService()
+            storage_result = await storage_service.save_crawled_data(
+                self.db_session,
+                source=task.scrapy_id,
+                companies=result.get('companies', [])
+            )
+            logger.info(f"数据存储完成: {storage_result}")
+            
+            task.scraped_company_count = storage_result.get('company_success', 0)
+            task.scraped_lawyer_count = storage_result.get('lawyer_success', 0)
+            task.scrapy_url = result.get('scrapy_url', task.scrapy_url)
             task.status = TaskStatus.COMPLETED
             task.completion_time = int(time.time())
             logger.info(f"爬虫任务完成: {task_id}")

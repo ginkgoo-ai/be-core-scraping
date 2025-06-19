@@ -79,14 +79,13 @@ class CrawlerLawsocni(BaseCrawler):
     def _parse_detail_page(self, tree, firm_url: str) -> Dict[str, Any]:
         """解析公司详情页数据"""
         # 提取公司基本信息
-        firm_names = self._safe_extract(tree, "//div[contains(@class, 'section-heading')]/h1/span/text()")
+        firm_names = tree.xpath("//div[contains(@class, 'section-heading')]/h1/span/text()")
         firm_name = firm_names[0].strip() if firm_names else ""
         if not firm_name:
             logger.warning(f"无法提取公司名称，URL: {firm_url}")
             return {}
 
         # 提取联系信息
-        
         firm_email = self._extract_email(tree)
         firm_phone = self._extract_phone(tree)
         firm_website = self._extract_website(tree)
@@ -129,22 +128,14 @@ class CrawlerLawsocni(BaseCrawler):
                 'lawyers': [{
                     'name': lawyer_name,
                     'practice_areas': firm['areas_of_expertise'],
-                    'source': self.source_name
-                } for lawyer_name in firm['solicitors']]
+                    
+                }  for lawyer_name in firm['solicitors'] if lawyer_name.strip()]
             }
             companies.append(company)
-
-            # 律师数据
-            # for lawyer_name in firm['solicitors']:
-            #     lawyer = {
-            #         'name': lawyer_name,
-            #         'company_id': None,  # 将由存储服务关联
-            #         'practice_areas': firm['areas_of_expertise'],
-            #         'source': self.source_name
-            #     }
-            #     lawyers.append(lawyer)
-
+            logger.debug(f"格式化公司数据: {company['name']}, 律师数量: {len(company['lawyers'])}")
+        logger.info(f"数据格式化完成，共 {len(companies)} 家公司，{sum(len(c['lawyers']) for c in companies)} 名律师")
         return {'companies': companies}
+
 
     # 辅助提取方法
     def _safe_extract(self, tree: html.HtmlElement, xpath: str) -> str:
@@ -153,20 +144,21 @@ class CrawlerLawsocni(BaseCrawler):
         if elements:
             return elements[0].strip() if isinstance(elements[0], str) else elements[0].text.strip()
         return ''
+    
     def _extract_website(self, tree: html.HtmlElement) -> str:
+        """提取网站地址"""
         try:
-            # 使用 lxml 正确的属性获取方式
-            links = tree.xpath("//a[@target='_blank' and contains(@href, 'http')]")
-            if links and isinstance(links[0], html.HtmlElement):
-                # 直接使用 .get() 方法，无需 .attrs
-                return links[0].get('href', '').strip()
+            links = tree.xpath("//a[contains(., 'Visit the Website')]/@href")
+            if links:
+                return links[0].strip()
+            self.logger.warning("未找到匹配的网站链接")
             return ''
         except Exception as e:
             self.logger.error(f"提取网站链接失败: {str(e)}")
             return ''
     def _extract_email(self, tree: html.HtmlElement) -> str:
         """提取邮箱地址"""
-        mailto_links = tree.xpath("//a[contains(@href, 'mailto')]/@href")
+        mailto_links = tree.xpath("//a[contains(., 'Send Enquiry')]/@href")
         if mailto_links:
             mailto_link = mailto_links[0]
             return mailto_link.split(':', 1)[-1].strip()
@@ -174,27 +166,48 @@ class CrawlerLawsocni(BaseCrawler):
 
     def _extract_phone(self, tree: html.HtmlElement) -> str:
         """使用XPath提取电话"""
-        tel_links = tree.xpath("//a[contains(@href, 'tel')]/@href")
+        tel_links = tree.xpath("//a[contains(., 'Call Now')]/@href")
         if tel_links:
             return tel_links[0].split(':', 1)[1] if ':' in tel_links[0] else ""
         return ''
 
     def _extract_address(self, tree: html.HtmlElement) -> str:
+        """使用XPath提取地址"""
         try:
             address_elements = tree.xpath("//div[contains(@class, 'address')]")
             if address_elements and isinstance(address_elements[0], html.HtmlElement):
-                # 修复：使用 .get() 替代 .attrs.get()
                 address = address_elements[0].get('content', '').strip()
                 return address
-            return ''
         except Exception as e:
             self.logger.error(f"提取地址失败: {str(e)}")
             return ''
 
     def _extract_solicitors(self, tree: html.HtmlElement) -> List[str]:
         """提取律师列表"""
-        elements = tree.xpath("//span[@class='font-bold ']/text()")
-        return [elem.strip() for elem in elements if elem.strip()]
+        elements = tree.xpath("//span[@class='font-bold ']/text()") #这里Xpath的空格要保留，源站就是这样的
+        # 该网站律师名字返回的全大写，进行调整以提高可读
+        formatted_names = []
+        for elem in elements:
+            raw_name = elem.strip()
+            if not raw_name:
+                continue  
+            # 正则匹配名字和后缀（支持多种格式："NAME SUFFIX", "NAME, SUFFIX", "NAME (SUFFIX)"）
+            match = re.match(
+            r'^(?P<name>[\w\s\-\']+?)(?:\s+|\,|\()(?P<suffix>[A-Z]{2,4}(?:\s+[A-Z]{2,4})?)?\)?$',
+            raw_name
+        )
+            if match:
+                name_parts = match.group('name').split()
+                suffix = match.group('suffix') or ""
+                # 格式化名字
+                formatted_name = " ".join([part.capitalize() for part in name_parts])
+                # 追加后缀（去空格并保留原始格式）
+                if suffix:
+                    formatted_name += f" {suffix.strip()}"  
+                formatted_names.append(formatted_name)
+    
+        return [name for name in formatted_names if name]
+       
 
     def _extract_expertise(self, tree: html.HtmlElement) -> List[str]:
         """提取专业领域列表"""
