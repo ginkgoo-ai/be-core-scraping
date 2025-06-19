@@ -73,7 +73,7 @@ async def get_task_detail(
             task_type=task.type,
             scrapy_id=task.scrapy_id,
             completion_time=task.completion_time,
-            # 从元数据中获取统计信息
+            scrapy_url = task.scrapy_url,
             scraped_company_count=task.scraped_company_count or 0,
             scraped_lawyer_count=task.scraped_lawyer_count or 0,
             # 错误信息存储在单独字段
