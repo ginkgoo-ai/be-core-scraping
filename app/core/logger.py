@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 from app.core.config import settings
-
+import os
 
 class WatchfilesFilter(logging.Filter):
     def filter(self, record):
@@ -16,7 +16,9 @@ class WatchfilesFilter(logging.Filter):
 def setup_logging():
     logger = logging.getLogger()
     logger.setLevel(settings.LOG_LEVEL)
-    
+    #创建日志文件
+    log_dir = os.path.dirname(settings.LOG_PATH)
+    os.makedirs(log_dir, exist_ok=True)
 
     # 统一日志格式
     formatter = logging.Formatter(
