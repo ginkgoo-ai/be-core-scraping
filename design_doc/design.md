@@ -163,6 +163,7 @@
 | total\_solicitors | int          | 总律师数         | 否       | 100                           |
 | areas\_of\_law     | text         | JSON数组（领域） | 否       | ["Commercial", "Family"]     |
 | team\_count       | int          | 团队数量         | 否       | 8                             | 
+| redundant\_info   | jsonb        | 冗余字段       | 否         | {"Fax": "0141 41601"}          | 
 | update\_date      | bigint       | 更新时间         | 否       | 1697347200                    | 
 | create\_date      | bigint       | 创建时间         | 否       | 1697347200                    |
 
@@ -186,12 +187,23 @@
 | practice\_areas | text         | JSON数组       | 否             | \["Corporate"]            | 
 | address        | text         | 地址           | 否             | "London Office"          | 
 | telephone      | varchar(20)  | 电话           | 否             | "+44 7700 900123"         | 
+| redundant\_info   | jsonb        | 冗余字段       | 否         | {"Fax": "0141 41601"}          | 
 | update\_date    | bigint       | 更新时间       | 否             | 1697347200               | 
 | create\_date    | bigint       | 创建时间       | 否             | 1697347200               |
 
-* **外键约束**：
+* **备注**：
 
-  * `FOREIGN KEY (company_id) REFERENCES Company(id) ON DELETE CASCADE`
+ `COMMENT ON COLUMN "customer"."company"."domains" IS 'Unique domain names for the law firm, comma-separated';`
+
+`COMMENT ON COLUMN "customer"."company"."areas_of_law" IS 'JSON array of practice areas';`
+
+`COMMENT ON COLUMN "customer"."company"."update_date" IS 'Unix timestamp of last update';`
+
+`COMMENT ON COLUMN "customer"."company"."create_date" IS 'Unix timestamp of creation';`
+
+`COMMENT ON COLUMN "customer"."company"."redundant_info" IS 'Redundant JSON information for company';`
+
+`COMMENT ON TABLE "customer"."company" IS 'Law firms/companies information';`
 
 ---
 
