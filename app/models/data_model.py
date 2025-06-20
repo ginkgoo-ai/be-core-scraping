@@ -17,13 +17,14 @@ class Company(Base):
     id = Column(BigInteger, primary_key=True)
     domains = Column(String(255), unique=True)
     name = Column(String(255))
-    company_phone = Column(String(20))
+    company_phone = Column(String(100))
     company_email = Column(String(100))
     company_address = Column(Text)
     scottish_partners = Column(Integer)
     total_solicitors = Column(Integer)
     areas_of_law = Column(JSON)
     team_count = Column(Integer)
+    redundant_info = Column(JSON, default=lambda: {})
     update_date = Column(BigInteger, nullable=False, default=lambda: int(datetime.now().timestamp()))
     create_date = Column(BigInteger, nullable=False, default=lambda: int(datetime.now().timestamp()))
     lawyers = relationship(
@@ -33,9 +34,7 @@ class Company(Base):
         viewonly=True  # 添加viewonly标记避免写入冲突
     )
 
-    # 与CRM数据的关联
-    # crm_data = relationship("CRMData", back_populates="crawled_data", uselist=False)
-     # AFTER (V2 syntax):
+
     
 class Lawyer(Base):
     __tablename__ = 'lawyer'
@@ -47,7 +46,8 @@ class Lawyer(Base):
     name = Column(String(100))
     practice_areas = Column(JSON)
     address = Column(Text)
-    telephone = Column(String(20))
+    telephone = Column(String(100))
+    redundant_info = Column(JSON, default=lambda: {})
     update_date = Column(BigInteger, nullable=False, default=lambda: int(datetime.now().timestamp()))
     create_date = Column(BigInteger, nullable=False, default=lambda: int(datetime.now().timestamp()))
     company = relationship(
@@ -95,4 +95,4 @@ class SyncType(str, Enum):
 class ScrapyId(str, Enum):
     SCRAPY_A = "crawler_lawsocni"
     SCRAPY_B = "scrapy_b"
-    SCRAPY_C = "scrapy_c"
+    SCRAPY_C = "crawler_lawscot"

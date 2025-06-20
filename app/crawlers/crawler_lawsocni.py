@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 from urllib.parse import urlparse 
 from app.core.logger import logger
 from app.crawlers.base_crawler import BaseCrawler
+import urllib.parse
 
 class CrawlerLawsocni(BaseCrawler):
     """Lawsocni网站爬虫实现，遵循项目标准爬虫接口"""
@@ -29,10 +30,30 @@ class CrawlerLawsocni(BaseCrawler):
             'lawyers': [...]
         }
         """
-        logger.info(f"开始爬取 {self.source_name} 网站，URL: {self.scrapy_url}")
+       
+        
+        parsed_url = urllib.parse.urlparse(self.scrapy_url)
+        query_params = urllib.parse.parse_qs(parsed_url.query)
+        
+        # 严格判断是否存在limit参数
+        
         try:
+            if 'limit' not in query_params:
+            # 构建新参数
+                query_params['limit'] = ['9999']
+                new_query = urllib.parse.urlencode(query_params, doseq=True)
+                # 重构完整URL（自动处理?和&的拼接）
+                modified_url = urllib.parse.urlunparse(
+                    (parsed_url.scheme, parsed_url.netloc, parsed_url.path,
+                    parsed_url.params, new_query, parsed_url.fragment)
+                )
+                self.logger.info(f"Added limit=9999 to URL: {modified_url}")
+            else:
+                modified_url = self.scrapy_url
+                self.logger.info(f"URL already contains limit parameter: {modified_url}")
             # 获取搜索页面内容
-            html_content = self._get_page_content(self.scrapy_url)
+            logger.info(f"开始爬取 {self.source_name} 请求网站，URL: {self.scrapy_url}，实际请求：{modified_url}")
+            html_content = self._get_page_content(modified_url)
             tree = self._parse_html(html_content)
 
             # 提取公司详情页URL
@@ -151,7 +172,7 @@ class CrawlerLawsocni(BaseCrawler):
             links = tree.xpath("//a[contains(., 'Visit the Website')]/@href")
             if links:
                 return links[0].strip()
-            self.logger.warning("未找到匹配的网站链接")
+            self.logger.warning("该律所未找到匹配的网站链接")
             return ''
         except Exception as e:
             self.logger.error(f"提取网站链接失败: {str(e)}")

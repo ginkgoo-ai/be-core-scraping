@@ -17,12 +17,12 @@ class TimeConvertMixin:
         return value
 
 class ScrapyTriggerRequest(BaseModel):
-    scrapy_id: ScrapyId = Field(..., description="爬虫ID，支持lawsocni_spider/scrapy_b/scrapy_c")
+    scrapy_id: ScrapyId = Field(..., description="爬虫ID，支持lawsocni_spider/crawler_lawscot")
     scrapy_url: str = Field(..., description="目标爬取URL")
-    # priority: Optional[int] = Field(1, ge=1, le=5, description="任务优先级(1-5)")
+
 class SyncTriggerRequest(BaseModel):
     sync_type: SyncType = Field(..., description="同步脚本，支持company/lawyer")
-    # priority: Optional[int] = Field(1, ge=1, le=5, description="任务优先级(1-5)")
+
 
 #  成功响应
 class SuccessResponse(BaseModel,Generic[T]):

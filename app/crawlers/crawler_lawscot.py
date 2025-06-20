@@ -127,7 +127,12 @@ class CrawlerLawscot(BaseCrawler):
             ]),
             'total_solicitors': total_solicitors_num,
             'scottish_partners': scottish_partners_num,
-            'domains': original_website  # 修正为字符串类型
+            'domains': original_website,
+            'redundant_info':{
+                'City': data.get('City'),
+                'Fax': data.get('Fax'),
+                'Postcode': data.get('Postcode')
+                } 
         }
 
         # 提取律师ID并异步处理
@@ -189,7 +194,14 @@ class CrawlerLawscot(BaseCrawler):
                     c.get('Parent', {}).get('PublicDescription')
                     for c in data.get('CategoriesOfWork', [])
                     if c.get('Parent', {}).get('PublicDescription')
-                ]
+                ],
+                'redundant_info':{
+                  'AdmissionDate': data.get('AdmissionDate'),
+                  'AdvocateStatus': data.get('AdvocateStatus'),
+                  'Languages': data.get('Languages'),
+                  'NotaryPublic': data.get('NotaryPublic')
+                             
+                }
             }
             logger.info(f"解析到律师数据: {lawyer_info['name']} (公司ID: {firm_id})")
 
@@ -219,6 +231,7 @@ class CrawlerLawscot(BaseCrawler):
                 'areas_of_law': firm['base_info']['areas_of_law'],
                 'total_solicitors': firm['base_info']['total_solicitors'],
                 'scottish_partners': firm['base_info']['scottish_partners'],
+                'redundant_info':firm['base_info']['redundant_info'],
                 'lawyers': firm['parsed_solicitors']
             }
             companies.append(company)
