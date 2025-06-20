@@ -7,23 +7,16 @@ class DataStorageService:
     # 负责将清洗后的爬虫数据存储到数据库
 
     @staticmethod
-    async def save_crawled_data(db, source: str, companies: list = None, lawyers: list = None) -> dict:
-        # 保存爬取数据到数据库
-        # 
-        # Args:
-        #     db: 数据库会话
-        #     source: 数据来源(爬虫ID)
-        #     companies: 公司数据列表(Company对象)
-        #     lawyers: 律师数据列表(Lawyer对象)
-        # 
-        # Returns:
-        #     dict: 存储结果统计
+    async def save_crawled_data(db, source: str, companies: list = None, lawyers: list = None, batch_size: int = 30) -> dict:
+        # 保存爬取数据到数据库（分批次提交版本）
+       
         result = {
             'source': source,
             'company_success': 0,
             'company_failed': 0,
             'lawyer_success': 0,
-            'lawyer_failed': 0
+            'lawyer_failed': 0,
+            'batches_committed': 0 
         }
 
         if not companies:
@@ -31,25 +24,22 @@ class DataStorageService:
             return result
 
         try:
+            company_counter = 0  # 批次计数器
             # 逐个处理公司及其关联律师
             for company_data in companies:
                 try:
                     # 1. 处理公司数据
-                    # 提取嵌套的律师数据
                     lawyer_list = company_data.pop('lawyers', [])
-                    
                     
                     # 检查公司是否已存在（支持域名空值情况）
                     query = db.query(Company)
                     if company_data.get('domains'):
                         existing_company = query.filter(Company.domains == company_data['domains']).first()
                     else:
-                        # 域名空值时使用名称+地址组合查询
                         existing_company = query.filter(
                             Company.name == company_data['name'],
                             Company.company_address == company_data['company_address']
                         ).first()
-                    
                     
                     # 保存/更新公司
                     if existing_company:
@@ -60,21 +50,18 @@ class DataStorageService:
                         company_id = existing_company.id
                     else:
                         logger.info(f"Creating new company: {company_data['name']}")
-                        new_company = Company(**company_data)
+                        new_company = Company(** company_data)
                         db.add(new_company)
-                        db.flush()  # 立即刷新获取ID
+                        db.flush()  # 刷新获取ID
                         company_id = new_company.id
                     
                     result['company_success'] += 1
-                    logger.debug(f"Successfully processed company: {company_data['name']}, ID: {company_id}")
+                    company_counter += 1
                     
                     # 2. 处理该公司的律师数据
                     for lawyer_data in lawyer_list:
                         try:
-                            # 设置公司ID关联
                             lawyer_data['company_id'] = company_id
-                            
-                            # 检查律师是否已存在
                             existing_lawyer = db.query(Lawyer).filter(
                                 Lawyer.name == lawyer_data['name'],
                                 Lawyer.company_id == company_id
@@ -85,7 +72,7 @@ class DataStorageService:
                                     if value is not None:
                                         setattr(existing_lawyer, key, value)
                             else:
-                                new_lawyer = Lawyer(** lawyer_data)
+                                new_lawyer = Lawyer(**lawyer_data)
                                 db.add(new_lawyer)
                             
                             result['lawyer_success'] += 1
@@ -93,25 +80,32 @@ class DataStorageService:
                             logger.error(f"Failed to save lawyer {lawyer_data.get('name')}: {str(e)}")
                             result['lawyer_failed'] += 1
                     
+                    # 3. 批次提交逻辑
+                    if company_counter % batch_size == 0:
+                        db.commit()
+                        db.flush()  # 清空会话缓存
+                        result['batches_committed'] += 1
+                        logger.info(f"Committed batch {result['batches_committed']} (total companies processed: {company_counter})")
+                    
                 except Exception as e:
                     logger.error(f"Failed to process company {company_data.get('name')}: {str(e)}")
                     result['company_failed'] += 1
-                    continue  # 跳过当前公司的所有律师
+                    continue  # 跳过当前公司
 
-
-            # 提交事务
-            db.commit()
-            logger.info(f"Transaction committed successfully for {source}. Results: {result}")
-            logger.info(f"Data save completed for {source}: {result}")
+            # 4. 提交剩余未达批次的数据
+            if company_counter % batch_size != 0:
+                db.commit()
+                result['batches_committed'] += 1
+                logger.info(f"Committed final batch (remaining companies: {company_counter % batch_size})")
+            
+            logger.info(f"All data processed. Total batches: {result['batches_committed']}, Results: {result}")
             return result
 
         except SQLAlchemyError as e:
-            # 回滚事务并记录数据库错误
             db.rollback()
-            logger.error(f"Database error during data save: {str(e)}")
+            logger.error(f"Database error during batch commit: {str(e)}")
             raise
         except Exception as e:
-            # 处理其他异常
             logger.error(f"Unexpected error during data save: {str(e)}")
             raise
 
