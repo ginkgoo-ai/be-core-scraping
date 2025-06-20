@@ -38,7 +38,7 @@ class ErrorResponse(BaseModel):
 # scrapy-trigger 返回结构
 class ScrapyTriggerResponse(BaseModel):
     task_id: int
-    trigger_time: datetime  
+    trigger_time: int  
     scrapy_id: str
     scrapy_url: str 
     
