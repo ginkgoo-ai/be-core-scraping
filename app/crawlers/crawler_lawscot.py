@@ -5,18 +5,18 @@ from urllib.parse import urlparse
 from lxml import html
 from typing import Dict, Any, List
 from app.core.logger import logger
-from app.services.data_storage import DataStorageService
 from app.crawlers.base_crawler import BaseCrawler
 
 
 class CrawlerLawscot(BaseCrawler):
     """Lawscot网站爬虫实现，遵循项目标准爬虫接口"""
-    source_name = "crawler_lawscot"
+    source_name = "crawler_lawscot" #Law Society of Scotland
     scrapy_id = "crawler_lawscot"
     base_url = "https://www.lawscot.org.uk/umbraco/surface/Imis"
 
-    def __init__(self, scrapy_url: str):
+    def __init__(self, scrapy_url: str, scrapy_params: dict = None):
         super().__init__(scrapy_url)
+        self.scrapy_params = scrapy_params or {}
         self.firm_data: List[Dict[str, Any]] = []
 
 
@@ -54,7 +54,12 @@ class CrawlerLawscot(BaseCrawler):
 
             logger.info(f"成功提取到 {len(firm_ids)} 个公司ID，开始异步爬取详情页")
             # 创建任务列表并并发执行
-            tasks = [self._fetch_and_parse_detail(firm_id) for firm_id in firm_ids]
+            semaphore = asyncio.Semaphore(5)
+            async def sem_task(firm_id):
+                async with semaphore:
+                    return await self._fetch_and_parse_detail(firm_id)
+            
+            tasks = [sem_task(firm_id) for firm_id in firm_ids]
             await asyncio.gather(*tasks)
             logger.info(f"{self.source_name} 网站爬取完成，共获取 {len(self.firm_data)} 家公司数据")
             
@@ -132,7 +137,8 @@ class CrawlerLawscot(BaseCrawler):
                 'City': data.get('City'),
                 'Fax': data.get('Fax'),
                 'Postcode': data.get('Postcode')
-                } 
+                } ,
+            'source_name':self.source_name
         }
 
         # 提取律师ID并异步处理
@@ -195,6 +201,7 @@ class CrawlerLawscot(BaseCrawler):
                     for c in data.get('CategoriesOfWork', [])
                     if c.get('Parent', {}).get('PublicDescription')
                 ],
+                'source_name':self.source_name,
                 'redundant_info':{
                   'AdmissionDate': data.get('AdmissionDate'),
                   'AdvocateStatus': data.get('AdvocateStatus'),
@@ -232,6 +239,7 @@ class CrawlerLawscot(BaseCrawler):
                 'total_solicitors': firm['base_info']['total_solicitors'],
                 'scottish_partners': firm['base_info']['scottish_partners'],
                 'redundant_info':firm['base_info']['redundant_info'],
+                'source_name':self.source_name,
                 'lawyers': firm['parsed_solicitors']
             }
             companies.append(company)

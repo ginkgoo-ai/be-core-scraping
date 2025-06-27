@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_PATH: str = "./logs/app.log"
     LOG_ROTATION: str = "10MB"  # 新增日志轮转配置
+    AF_GOOGLE_MAPS_API_KEY: str
+    AF_FUID: str
+    AF_BASE_URL: str
+    AF_GOOGLE_BASE_URL: str
 
     class Config:
         env_file = ".env"
