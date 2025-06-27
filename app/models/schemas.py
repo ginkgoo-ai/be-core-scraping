@@ -19,6 +19,7 @@ class TimeConvertMixin:
 class ScrapyTriggerRequest(BaseModel):
     scrapy_id: ScrapyId = Field(..., description="爬虫ID，支持lawsocni_spider/crawler_lawscot")
     scrapy_url: str = Field(..., description="目标爬取URL")
+    scrapy_params: Optional[Dict[str, Any]] = Field(None, description="可选爬虫参数")
 
 class SyncTriggerRequest(BaseModel):
     sync_type: SyncType = Field(..., description="同步脚本，支持company/lawyer")
