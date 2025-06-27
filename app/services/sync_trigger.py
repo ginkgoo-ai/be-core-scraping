@@ -6,53 +6,61 @@ from typing import Dict, Any
 from app.core.logger import logger
 
 
-
 class SyncTriggerService(TriggerService):
-    # 同步任务触发服务
-    async def create_task(self, sync_type: str) -> int:
+    async def create_task(self, sync_source: str) -> int:
         # 创建同步任务记录
-        logger.info(f"创建同步任务: {sync_type}")
-        task_type = TaskType.SYNC_COMPANY if sync_type == SyncType.COMPANY else TaskType.SYNC_LAWYER
+        logger.info(f"创建同步任务: source={sync_source}")
+        
+        # 根据sync_source和sync_type确定任务类型
         new_task = Task(
             status=TaskStatus.IN_PROGRESS,
-            type=task_type,
-            scrapy_id=f"sync_{sync_type.lower()}",
+            type=TaskType.SYNC_COMPANY,
+            scrapy_id=sync_source,
             start_time=int(time.time()),
             create_date=int(time.time())
         )
         self.db_session.add(new_task)
         self.db_session.commit()
-        self.db_session.refresh(new_task)
-        logger.info(f"同步任务创建成功，ID: {new_task.id}")
         return new_task.id
 
     async def execute_task(self, task_id: int) -> Dict[str, Any]:
         # 执行同步任务
-        logger.info(f"开始执行同步任务: {task_id}")
         task = self.db_session.query(Task).filter(Task.id == task_id).first()
         if not task:
-            logger.error(f"任务ID不存在: {task_id}")
             raise ValueError(f"任务ID不存在: {task_id}")
+         # 解析任务参数
+        sync_source = task.scrapy_id
+        sync_service = CRMIntegrationService(self.db_session)
+        result = await sync_service.sync_companies(sync_source)
+        task.status = TaskStatus.COMPLETED
+        task.completion_time = int(time.time())
+        self.db_session.commit()  # 确保状态变更持久化
+        companies_count = result.get('company_count', 0)
+        lawyers_count = result.get('lawyer_count', 0)
+        logger.info(f"同步任务完成: {task_id}, 同步公司数量: {companies_count}, 同步律师数量: {lawyers_count}")
+        return {
+            "task_id": task_id,
+            "status": "completed",
+            "result": {
+                "companies_synced": companies_count,
+                "lawyers_synced": lawyers_count
+            }
+        }
 
-        try:
-            # 执行CRM同步
-            sync_service = CRMIntegrationService(self.db_session)
-            if 'company' in task.scrapy_id:
-                result = await sync_service.sync_companies()
-                logger.info(f"公司数据同步完成，同步数量: {len(result)}")
-            else:
-                result = await sync_service.sync_lawyers()
-                logger.info(f"律师数据同步完成，同步数量: {len(result)}")
+       
+        # # 根据参数获取数据并同步
+        # if sync_type == "all":
+        #     company_result = await sync_service.sync_companies(sync_source)
+        #     lawyer_result = await sync_service.sync_lawyers(sync_source)
+        #     return {"companies_synced": len(company_result), "lawyers_synced": len(lawyer_result)}
+        # elif sync_type == "company":
+        #     result = await sync_service.sync_companies(sync_source)
+        #     return {"companies_synced": len(result)}
+        # else:
+        #     result = await sync_service.sync_lawyers(sync_source)
+        #     return {"lawyers_synced": len(result)}
 
-            task.status = TaskStatus.COMPLETED
-            task.completion_time = int(time.time())
-            return {"task_id": task_id, "status": "completed", "synced_count": len(result)}
-
-        except Exception as e:
-            task.status = TaskStatus.FAILED
-            task.error_message = str(e)
-            task.completion_time = int(time.time())
-            logger.error(f"同步任务失败: {task_id}, 错误: {str(e)}", exc_info=True)
-            raise
-        finally:
-            self.db_session.commit()
+    def _parse_sync_params(self, sync_id: str) -> [str]:
+        # 从scrapy_id解析sync_source和sync_type
+        _, sync_source = sync_id.split("_")
+        return sync_source
