@@ -110,11 +110,19 @@ class TaskType(str, Enum):
     SCRAPY_LAWYER = "scrapy_lawyer"
     SYNC_COMPANY = "sync_company"
     SYNC_LAWYER = "sync_lawyer"
+    SYNC_ALL = "sync_all"
 
 # 该枚举类定义了同步操作的类型
 class SyncType(str, Enum):
     COMPANY = "company"
     LAWYER = "lawyer"
+    
+class SourceName(str,Enum):
+    CRAWLER_LAWSOCNI = "Law Society of Northern Ireland"
+    CRAWLER_LAWSCOT = "Law Society of Scotland"
+    CRAWLER_ADVISER_FINDER = "Immigration Advice Authority"
+    
+    
 #定义scrapy的类型   
 class ScrapyId(str, Enum):
     SCRAPY_A = "crawler_lawsocni"

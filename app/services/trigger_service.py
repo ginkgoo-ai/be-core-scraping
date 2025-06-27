@@ -20,3 +20,9 @@ class TriggerServiceManager:
         # 快捷调用：运行爬虫任务
         trigger = CrawlerTriggerService(db_session)
         return await trigger.run(scrapy_id)
+    
+    @staticmethod
+    async def run_sync(db_session: Session, sync_source: str, sync_type: str) -> Dict[str, Any]:
+        # 快捷调用：运行同步任务
+        trigger = SyncTriggerService(db_session)
+        return await trigger.run(sync_source, sync_type)
