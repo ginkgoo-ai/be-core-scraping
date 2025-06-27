@@ -9,11 +9,13 @@ import urllib.parse
 
 class CrawlerLawsocni(BaseCrawler):
     """Lawsocni网站爬虫实现，遵循项目标准爬虫接口"""
-    source_name = "crawler_lawsocni"
+    source_name = "crawler_lawsocni" #Law Society of Northern lreland
     scrapy_id = "crawler_lawsocni"
 
-    def __init__(self, scrapy_url: str):
+
+    def __init__(self, scrapy_url: str, scrapy_params: dict = None):
         super().__init__(scrapy_url)
+        self.scrapy_params = scrapy_params or {}
         self.firm_data: List[Dict[str, Any]] = []
     
     def _parse_html(self, html_content: str) -> html.HtmlElement:
@@ -146,9 +148,11 @@ class CrawlerLawsocni(BaseCrawler):
                 'company_address': firm['address'],
                 'domains': domain,
                 'areas_of_law': firm['areas_of_expertise'],
+                'source_name':self.source_name,
                 'lawyers': [{
                     'name': lawyer_name,
                     'practice_areas': firm['areas_of_expertise'],
+                    'source_name':self.source_name
                     
                 }  for lawyer_name in firm['solicitors'] if lawyer_name.strip()]
             }
@@ -172,7 +176,6 @@ class CrawlerLawsocni(BaseCrawler):
             links = tree.xpath("//a[contains(., 'Visit the Website')]/@href")
             if links:
                 return links[0].strip()
-            self.logger.warning("该律所未找到匹配的网站链接")
             return ''
         except Exception as e:
             self.logger.error(f"提取网站链接失败: {str(e)}")

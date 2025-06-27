@@ -69,15 +69,7 @@ pip install -r requirements.txt
 ```
 
 #### 2.2.4 配置环境变量
-创建`.env`文件，添加以下配置：
-```
-# 数据库配置
-DATABASE_URL=postgresql://user:password@localhost:xxxx/dbname
-DB_SCHEMA=customer
-
-# 日志配置
-LOG_LEVEL=INFO
-LOG_PATH=./logs/app.log  
+参考env.example 创建`.env`文件
 
 
 ## 3. 使用说明
@@ -92,7 +84,7 @@ python -m app.main
 - Swagger UI: http://localhost:8989/api/v1/docs
 - ReDoc: http://localhost:8989/api/v1/redoc
 
-### 3.3 触发爬虫任务
+### 3.3 触发律师爬虫任务
 #### 请求示例
 ```bash
 curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
@@ -123,7 +115,62 @@ curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
 }
 ```
 
-### 3.4 查看任务状态
+### 3.4 执行adviser 爬虫任务
+#### 请求示例
+```bash
+curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scrapy_id": "crawler_lawscot",
+    "scrapy_url": "https://www.lawscot.co.uk/using-lawyer",
+    "scrapy_params": {
+      "postcode": "WC2N", #必填 直接输入城市名字也可以
+      "distance": 50, #非必填，默认50
+      "feeCharging": "Both", #非必填，默认Both
+      "typeOfAdvice": "typeOfAdvice" #非必填，默认typeOfAdvice
+    }
+  }'
+```
+#### 请求参数
+| 参数名 | 类型 | 描述 | 可选值 |
+|--------|------|------|--------|
+| scrapy_id | string | 爬虫ID |crawler_adviser_finder|
+| scrapy_url | string | 爬取目标URL | 留空|
+| scrapy_params | object | 爬取参数 | 具体参数根据需要来定|
+
+```bash 
+#请求示例
+{
+  "scrapy_id": "crawler_lawsocni", 
+  "scrapy_url": "string",  
+  "scrapy_params": {
+    "postcode": "WC2N",  
+    "distance": 50,  
+    "feeCharging": "Both",  
+    "typeOfAdvice": "typeOfAdvice"  
+
+  }
+}
+
+```
+### 3.5 执行Sync 任务
+#### 请求示例
+
+```bash
+curl -X POST "http://localhost:8989/api/v1/sync-trigger" \
+  -H "Content-Type: application/json" \
+  -d '{
+      "sync_source": "crawler_lawsocni" 
+  }'
+```
+#### 请求参数
+| 参数名 | 类型 | 描述 | 可选值 |
+|--------|------|------|--------|
+| sync_source | string | 数据源，支持crawler_lawsocni/crawler_lawscot/crawler_adviser_finder/all|
+
+
+
+### 查看任务状态
 通过任务ID查询任务执行状态：
 ```bash
 curl -X GET "http://localhost:8989/api/v1/tasks/{task_id}"

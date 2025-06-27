@@ -22,11 +22,11 @@ async def trigger_scraping(
 ):
     """触发网站爬虫任务"""
     # 创建爬虫触发服务实例
-    crawler_service = CrawlerTriggerService(db)
+    crawler_service = CrawlerTriggerService(db_session=db)
     
     try:
         # 创建任务记录
-        task_id = await crawler_service.create_task(request.scrapy_id, request.scrapy_url)
+        task_id = await crawler_service.create_task(request.scrapy_id, request.scrapy_url,request.scrapy_params)
         
         logger.info(f"已创建爬虫任务，ID: {task_id}")
         

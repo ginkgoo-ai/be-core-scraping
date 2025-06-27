@@ -2,18 +2,19 @@ from app.services.trigger_base import TriggerService
 from app.crawlers.base_crawler import BaseCrawler
 from typing import Dict, Any
 import importlib
-from app.models.data_model import Task, TaskType, TaskStatus, Company
+from app.models.data_model import Task, TaskType, TaskStatus
 from app.services.data_storage import DataStorageService
 import time
-from app.core.logger import logger
-from datetime import datetime, timezone
 from app.core.database import get_db
+from app.core.logger import logger
+from sqlalchemy import select
 
 
 
 class CrawlerTriggerService(TriggerService):
+    
     # 爬虫任务触发服务
-    async def create_task(self, scrapy_id: str, scrapy_url: str) -> int:
+    async def create_task(self, scrapy_id: str, scrapy_url: str, scrapy_params: dict) -> int:
         # 创建爬虫任务记录
         logger.info(f"创建爬虫任务: {scrapy_id}, URL: {scrapy_url}")
         try:
@@ -22,10 +23,11 @@ class CrawlerTriggerService(TriggerService):
                 type=TaskType.SCRAPY_COMPANY,
                 scrapy_id=scrapy_id,
                 scrapy_url=scrapy_url,
+                scrapy_params=scrapy_params,
                 start_time=int(time.time()),
                 create_date=int(time.time())
             )
-            logger.debug(f'创建任务对象: {vars(new_task)}')  # 新增调试日志
+            logger.debug(f'创建任务对象: {vars(new_task)}')  
             self.db_session.add(new_task)
             self.db_session.commit()
             self.db_session.refresh(new_task)
@@ -46,7 +48,7 @@ class CrawlerTriggerService(TriggerService):
             - 异常捕获与错误记录
         """
         # 执行爬虫任务
-        logger.info(f"开始执行爬虫任务: {task_id}")
+        logger.info(f"开始执行爬虫任务，task_id: {task_id}")
         task = self.db_session.query(Task).filter(Task.id == task_id).first()
         if not task:
             logger.error(f"任务ID不存在: {task_id}")
@@ -57,17 +59,20 @@ class CrawlerTriggerService(TriggerService):
             logger.info(f"动态加载爬虫模块: {task.scrapy_id}")
             crawler_module = importlib.import_module(f"app.crawlers.{task.scrapy_id}")
             if '_' in task.scrapy_id:
-                prefix, suffix = task.scrapy_id.split('_', 1)
-                class_name = f"Crawler{suffix.capitalize()}"
+                class_name = "Crawler" + "".join(part.capitalize() for part in task.scrapy_id.split('_')[1:])
             else:
                 class_name = f"Crawler{task.scrapy_id.capitalize()}"
             crawler_class = getattr(crawler_module, class_name)
-            crawler = crawler_class(scrapy_url=task.scrapy_url)
+            crawler = crawler_class(scrapy_url=task.scrapy_url,scrapy_params=task.scrapy_params)
 
             # 执行爬取
             result = await crawler.crawl()
+            
             logger.info(f"待存储company: {len(result.get('companies', []))}条")
             #数据存储：
+            if self.db_session is None:
+                logger.error("CrawlerTriggerService数据库会话未初始化")
+                raise RuntimeError("数据库会话未初始化")
             storage_service = DataStorageService()
             storage_result = await storage_service.save_crawled_data(
                 self.db_session,
@@ -85,6 +90,7 @@ class CrawlerTriggerService(TriggerService):
             return {"task_id": task_id, "status": "completed", "result": result}
 
         except Exception as e:
+            self.db_session.rollback() 
             task.status = TaskStatus.FAILED
             task.error_message = str(e)
             task.completion_time = int(time.time())

@@ -1,8 +1,10 @@
 # app/core/config.py
 from pydantic_settings import BaseSettings
-from pydantic import PostgresDsn, SecretStr
+from pydantic import  SecretStr
 from dotenv import load_dotenv
+import json
 import os
+from typing import ClassVar, Dict
 
 load_dotenv()
 class Settings(BaseSettings):
@@ -20,6 +22,17 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_PATH: str = "./logs/app.log"
     LOG_ROTATION: str = "10MB"  # 新增日志轮转配置
+    AF_GOOGLE_MAPS_API_KEY: str
+    AF_FUID: str
+    AF_BASE_URL: str
+    AF_GOOGLE_BASE_URL: str
+    # CRM配置
+    CRM_URL: str 
+    CRM_API_KEY: str      
+    CRM_COMPANY_FIELD_MAPPING: Dict[str, str] = {}  
+    CRM_LAWYER_FIELD_MAPPING: Dict[str, str] = {}
+
+    
 
     class Config:
         env_file = ".env"
