@@ -136,7 +136,7 @@ curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
 |--------|------|------|--------|
 | scrapy_id | string | 爬虫ID |crawler_adviser_finder|
 | scrapy_url | string | 爬取目标URL | 留空|
-| scrapy_url | string | 爬取目标URL | 留空|
+| scrapy_params | object | 爬取参数 | 具体参数根据需要来定|
 
 ```bash 
 #请求示例
