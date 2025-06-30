@@ -1,13 +1,17 @@
 import requests
+import traceback
+import aiohttp
 from app.core.config import settings
 from app.core.logger import logger
 from app.models.data_model import Company, Lawyer,SourceName
 import json
+from asyncio import gather
 
 
 class CRMIntegrationService:
     def __init__(self, db_session):
         self.db_session = db_session
+        self.session = aiohttp.ClientSession() 
         self.attio_api_base = settings.CRM_URL
         self.attio_token = settings.CRM_API_KEY
         self.headers = {
@@ -18,15 +22,27 @@ class CRMIntegrationService:
         self.company_api_failure = 0
         self.lawyer_api_success = 0
         self.lawyer_api_failure = 0
-       
-        
-    async def send_attio_request(self, endpoint, data):
+    #定义session 上下文管理器
+    async def __aenter__(self):
+        return self
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.session.close()
+    
+    #定义attio请求方法
+    async def send_attio_request(self, endpoint, data, method='post'):
         url = f"{self.attio_api_base}/{endpoint}"
         
         try:
-            response = requests.post(url, headers=self.headers, json=data)
+            if method.lower() not in ['put', 'post']:
+                logger.error(f"CRM API请求方式不对: 实际请求：{method}，仅支持put/post")
+                raise ValueError(f"Unsupported HTTP method: {method}")
+            if method.lower() == 'put':
+                response = await self.session.put(url, headers=self.headers, json=data)
+            else:
+                response = await self.session.post(url, headers=self.headers, json=data)
+           
             response.raise_for_status()
-            return response.json()
+            return await response.json()
         except requests.exceptions.RequestException as e:
             if 'response' in locals():
                 logger.error(f"CRM API请求体: {json.dumps(data, indent=2, ensure_ascii=False)}")
@@ -81,23 +97,6 @@ class CRMIntegrationService:
             }
         }
     }
-        # return {
-        #     "data": {
-        #         "values": {
-        #             "name": company.name,
-        #             "domains": [company.domains] if company.domains else [],
-        #             "company_email": company.company_email,
-        #             "company_phone": company.company_phone,
-        #             "company_address": company.company_address,
-        #             "areas_of_law": company.areas_of_law,
-        #             "total_solicitors": company.total_solicitors if company.total_solicitors is not None else 0,
-        #             "scottish_partners": company.scottish_partners if company.scottish_partners is not None else 0,
-        #             "team_count": self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
-        #             "regulated_body": SourceName[company.source_name.upper()].value,
-        #             # "regulated_body":company.source_name
-        #         }
-        #     }
-        # }
         
 
     def _build_lawyer_data(self, lawyer, crm_company_id):
@@ -105,7 +104,7 @@ class CRMIntegrationService:
         return {
         "data": {
             "values": {
-                field_mapping.get("name", "name"): [{ "first_name": lawyer.name,"last_name": "","full_name": ""}],
+                field_mapping.get("name", "name"): [{ "first_name": "","last_name": "","full_name": lawyer.name}],
                 field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
                 field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
                 field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
@@ -137,11 +136,18 @@ class CRMIntegrationService:
 
     async def sync_companies(self, sync_source: str):
         companies = await self.get_company_data(sync_source)
+        
         results = []
         for company in companies:
-            
             try:
-                response = await self.send_attio_request("objects/companies/records", self._build_company_data(company))
+                company_endpoint = "objects/companies/records"
+                method = 'put' if company.domains else 'post'  #依赖attio更新方式增加去重校验
+                endpoint = f"{company_endpoint}?matching_attribute=domains" if method == 'put' else company_endpoint
+                response = await self.send_attio_request(
+                    endpoint,
+                    self._build_company_data(company),
+                    method=method
+                )
                 if response:
                     self.company_api_success += 1
                     results.append(response)
@@ -155,8 +161,16 @@ class CRMIntegrationService:
                         logger.info(f"公司 {company.name} 没有关联律师，跳过律师同步")
                         continue
                     for lawyer in lawyers:
+                        lawyer_endpoint = "objects/people/records"
                         lawyer_data = self._build_lawyer_data(lawyer, crm_company_id)
-                        response = await self.send_attio_request("objects/people/records", lawyer_data)
+                        method = 'put' if lawyer.email_addresses else 'post'        #依赖attio更新方式增加去重校验
+                        endpoint = f"{lawyer_endpoint}?matching_attribute=email_addresses" if method == 'put' else lawyer_endpoint
+                        response = await self.send_attio_request(
+                            endpoint,
+                            lawyer_data,
+                            method=method
+                        )
+                        
                         
                         if response:
                             self.lawyer_api_success += 1
@@ -171,7 +185,7 @@ class CRMIntegrationService:
                     self.company_api_failure += 1
                     logger.error(f"公司 {company.name} 同步失败")
             except Exception as e:
-                logger.error(f"公司 {company.name} 同步失败: {str(e)}")
+                logger.error(f"公司 {company.name} 同步失败: {str(e)}，详细堆栈: {traceback.format_exc()}")
                 self.company_api_failure += 1
         return {
             'company_count': self.company_api_success,
