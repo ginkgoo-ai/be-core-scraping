@@ -1,17 +1,25 @@
-import requests
-import traceback
+
 import aiohttp
 from app.core.config import settings
 from app.core.logger import logger
 from app.models.data_model import Company, Lawyer,SourceName
 import json
 from asyncio import gather
-
+import asyncio
+import datetime
+from datetime import timezone
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
 
 class CRMIntegrationService:
     def __init__(self, db_session):
         self.db_session = db_session
-        self.session = aiohttp.ClientSession() 
+        self.executor = ThreadPoolExecutor(max_workers=5)  # 初始化线程池
+        self.session = None
+        #attio API限制请求频次25/s
+        self.company_semaphore = asyncio.Semaphore(5)  # company级并发控制
+        self.lawyer_semaphore = asyncio.Semaphore(15)     # lawyer级并发控制
         self.attio_api_base = settings.CRM_URL
         self.attio_token = settings.CRM_API_KEY
         self.headers = {
@@ -22,48 +30,115 @@ class CRMIntegrationService:
         self.company_api_failure = 0
         self.lawyer_api_success = 0
         self.lawyer_api_failure = 0
+        
+    @retry(
+        stop=stop_after_attempt(3),  # 最大重试次数
+        wait=wait_exponential(multiplier=1, min=1, max=10),  # 指数退避
+        retry=retry_if_exception_type((ValueError, aiohttp.ClientError)),
+    )
     #定义session 上下文管理器
     async def __aenter__(self):
+        self.session = aiohttp.ClientSession()
         return self
     async def __aexit__(self, exc_type, exc, tb):
-        await self.session.close()
+        self.executor.shutdown(wait=True)
+        if self.session:
+            await self.session.close()
+        
+    #429重试逻辑    
+    def _parse_retry_after(self, retry_after_header):
+        try:
+            return int(retry_after_header)
+        except (ValueError, TypeError):
+            pass
+        if isinstance(retry_after_header, str):
+            try:
+                # 解析日期字符串并添加UTC时区信息
+                retry_datetime = datetime.datetime.strptime(
+                    retry_after_header, '%a, %d %b %Y %H:%M:%S GMT'
+                ).replace(tzinfo=timezone.utc)
+                # 获取当前UTC时间
+                now = datetime.datetime.now(timezone.utc)
+                # 计算时间差并转换为秒数
+                time_diff = retry_datetime - now
+                seconds = int(time_diff.total_seconds())
+                # 确保等待时间不为负（服务器时间可能比本地快）
+                return max(seconds, 1)
+            except ValueError:
+                pass
+
+        # 所有解析失败时返回默认值
+        return 1
+
+
     
     #定义attio请求方法
     async def send_attio_request(self, endpoint, data, method='post'):
-        url = f"{self.attio_api_base}/{endpoint}"
-        
-        try:
-            if method.lower() not in ['put', 'post']:
-                logger.error(f"CRM API请求方式不对: 实际请求：{method}，仅支持put/post")
-                raise ValueError(f"Unsupported HTTP method: {method}")
-            if method.lower() == 'put':
-                response = await self.session.put(url, headers=self.headers, json=data)
-            else:
-                response = await self.session.post(url, headers=self.headers, json=data)
+        """
+        发送Attio API请求，包含速率限制和错误重试机制
+        :param endpoint: API端点路径（如'/objects/people/records'）
+        :param data: 请求数据（JSON对象）
+        :param method: HTTP方法（默认为'post'）
+        :return: API响应JSON数据
+        """
+        timeout = aiohttp.ClientTimeout(total=30)
+        full_url = f"{self.attio_api_base}/{endpoint}"
+        method_lower = method.lower()
+        if method.lower() not in ['put', 'post']:
+                    logger.error(f"CRM API请求方式不对: 实际请求：{method}，仅支持put/post")
+                    raise ValueError(f"Unsupported HTTP method: {method}")
+        try:   
+            session_method = getattr(self.session, method_lower)
+            async with session_method(full_url, json=data, headers=self.headers,timeout=timeout) as response:
+                if response.status == 429:   # 处理429速率限制错误
+                    retry_after = self._parse_retry_after(response.headers.get('Retry-After', '1'))
+                    logger.warning(f"API速率限制触发，将在{retry_after}秒后重试")
+                    await asyncio.sleep(retry_after)
+                    raise aiohttp.ClientError(f"Rate limited, retry after {retry_after}s")
+                
+                if response.status >= 400:
+                    error_details = await response.text()
+                    logger.error(f"API请求失败: {response.status}，详情: {error_details}")
+                response.raise_for_status() 
+                return await response.json()
+        # except ClientResponseError as e:
+        #     logger.error(f"CRM API请求体: {json.dumps(data, indent=2, ensure_ascii=False)}")
+        #     logger.error(f"CRM API请求失败: 状态码{response.status_code}, 响应内容{response.text}")
+        except asyncio.TimeoutError:
+                logger.error(f"Attio API请求超时: {full_url}")
+                raise  # 重新抛出以让上层处理
+        except aiohttp.ClientError as e:
+                logger.error(f"Attio API请求失败: {str(e)}")
+                raise
+        except Exception as e:
+            logger.error(f"请求发生异常: {str(e)}", exc_info=True)
+            
+            
            
-            response.raise_for_status()
-            return await response.json()
-        except requests.exceptions.RequestException as e:
-            if 'response' in locals():
-                logger.error(f"CRM API请求体: {json.dumps(data, indent=2, ensure_ascii=False)}")
-                logger.error(f"CRM API请求失败: 状态码{response.status_code}, 响应内容{response.text}")
-            else:
-                logger.error(f"CRM API请求失败: {str(e)}")
-            return None
-        
     async def get_company_data(self, sync_source: str):
         # 根据sync_source查询公司数据
-        query = self.db_session.query(Company)
-        if sync_source != "all":
-            query = query.filter(Company.source_name == sync_source)
-        return query.all()
+        def sync_query():
+            query = self.db_session.query(Company)
+            if sync_source != "all":
+                query = query.filter(Company.source_name == sync_source) 
+            return query.all()
 
-    async def get_lawyer_data(self, sync_source: str):
-        # 根据sync_source查询律师数据
-        query = self.db_session.query(Lawyer)
-        if sync_source != "all":
-            query = query.filter(Lawyer.source_name == sync_source)
-        return query.all()
+        # 提交同步任务到线程池执行
+        return await asyncio.get_event_loop().run_in_executor(
+            self.executor,
+            sync_query  # 传递函数对象，而非执行结果
+        )
+       
+                
+    async def get_company_lawyers(self, company_id):
+        def sync_query():
+            return self.db_session.query(Lawyer).filter(
+                Lawyer.company_id == company_id
+            ).all()
+    
+        return await asyncio.get_running_loop().run_in_executor(
+            self.executor, sync_query
+        )
     
     def _build_company_data(self, company):
         field_mapping = settings.CRM_COMPANY_FIELD_MAPPING
@@ -118,30 +193,13 @@ class CRMIntegrationService:
         }
     }
         
-        # return {
-        #     "data": {
-        #         "values": {
-        #             "name": lawyer.name,
-        #             "email": lawyer.email_addresses,
-        #             "phone": lawyer.phone,
-        #             "address": lawyer.address,
-        #             "regulated_body": SourceName[lawyer.source_name.upper()].value,
-        #             "company": [{
-        #                 "target_object": "companies",
-        #                 "target_record_id": crm_company_id
-        #             }]
-        #         }
-        #     }
-        # }    
 
-    async def sync_companies(self, sync_source: str):
-        companies = await self.get_company_data(sync_source)
-        
-        results = []
-        for company in companies:
-            try:
+    #同步单个公司信息   
+    async def _sync_single_company(self, company):
+        try:
+            async with self.company_semaphore:
                 company_endpoint = "objects/companies/records"
-                method = 'put' if company.domains else 'post'  #依赖attio更新方式增加去重校验
+                method = 'put' if company.domains else 'post'
                 endpoint = f"{company_endpoint}?matching_attribute=domains" if method == 'put' else company_endpoint
                 response = await self.send_attio_request(
                     endpoint,
@@ -149,76 +207,102 @@ class CRMIntegrationService:
                     method=method
                 )
                 if response:
-                    self.company_api_success += 1
-                    results.append(response)
-                    logger.info(f"公司 {company.name} 同步成功")
-                    crm_company_id = response.get("data", {}).get("id", {}).get("record_id") #获取company在CRM的 id
+                    crm_company_id = response.get("data", {}).get("id", {}).get("record_id")
                     if not crm_company_id:
                         logger.error(f"公司 {company.name} 未获取到CRM ID")
-                        continue
-                    lawyers = self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).all()
-                    if not lawyers:
-                        logger.info(f"公司 {company.name} 没有关联律师，跳过律师同步")
-                        continue
-                    for lawyer in lawyers:
-                        lawyer_endpoint = "objects/people/records"
-                        lawyer_data = self._build_lawyer_data(lawyer, crm_company_id)
-                        method = 'put' if lawyer.email_addresses else 'post'        #依赖attio更新方式增加去重校验
-                        endpoint = f"{lawyer_endpoint}?matching_attribute=email_addresses" if method == 'put' else lawyer_endpoint
-                        response = await self.send_attio_request(
-                            endpoint,
-                            lawyer_data,
-                            method=method
-                        )
-                        
-                        
-                        if response:
-                            self.lawyer_api_success += 1
-                            results.append(response)
-                            logger.info(f"律师 {lawyer.name} 同步成功")
-                        else:
-                            self.lawyer_api_failure += 1
-                            logger.error(f"律师 {lawyer.name} 同步失败")
-                            logger.error(f"律师API请求 {lawyer_data}")
-                            logger.error(f"律师API返回 {response.text}")
-                else:
-                    self.company_api_failure += 1
-                    logger.error(f"公司 {company.name} 同步失败")
-            except Exception as e:
-                logger.error(f"公司 {company.name} 同步失败: {str(e)}，详细堆栈: {traceback.format_exc()}")
-                self.company_api_failure += 1
-        return {
-            'company_count': self.company_api_success,
-            'lawyer_count': self.lawyer_api_success,
-            'results': results
-        }
-    
+                        return None
 
-    # async def sync_lawyers(self, sync_source: str):
-    #     lawyers = await self.get_lawyer_data(sync_source)
-    #     results = []
-    #     for lawyer in lawyers:
-    #         lawyer_data = {
-    #             "data": {
-    #                 "values": {
-    #                     "name": lawyer.name,
-    #                     "email": lawyer.email,
-    #                     "phone": lawyer.phone,
-    #                     "address": lawyer.full_address,
-    #                     "practice_areas": lawyer.practice_areas,
-    #                     "company": [{
-    #                         "target_object": "companies",
-    #                         "target_record_id": lawyer.company_id
-    #                     }]
-    #                 }
-    #             }
-    #         }
-    #         response =await self.send_attio_request("objects/people/records", lawyer_data)
-    #         if response:
-    #             self.lawyer_api_success += 1
-    #             results.append(response)
-    #             logger.info(f"律师 {lawyer.id} 同步成功")
-    #         else:
-    #             self.lawyer_api_failure += 1
-    #             logger.error(f"律师 {lawyer.id} 同步失败")
-    #     return results
+                    # 同步公司关联的律师
+                    # lawyers = self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).all()
+                    await self._sync_company_lawyers(company.id, crm_company_id)
+                    # if lawyers:
+                    #     await self._sync_company_lawyers(lawyers, crm_company_id)
+                    # else:
+                    #    logger.info(f"公司 {company.name} 没有关联律师，跳过律师同步")
+                   
+                    logger.info(f"公司 {company.name} 同步成功")
+                    return response
+                return None
+        except Exception as e:
+            logger.error(f"公司 {company.name} 同步失败: {str(e)}", exc_info=True)
+            raise
+        
+    #同步单个律师信息 
+    async def _sync_single_lawyer(self, lawyer, crm_company_id):
+        try:
+            async with self.lawyer_semaphore:  # 使用律师专用信号量
+                lawyer_endpoint = "objects/people/records"
+                lawyer_data = self._build_lawyer_data(lawyer, crm_company_id)
+                method = 'put' if lawyer.email_addresses else 'post'
+                endpoint = f"{lawyer_endpoint}?matching_attribute=email_addresses" if method == 'put' else lawyer_endpoint
+                return await self.send_attio_request(endpoint, lawyer_data, method=method)
+        except Exception as e:
+            logger.error(f"同步律师 {lawyer.name} 时发生异常", exc_info=True)
+            raise
+     #同步律师列表 
+    async def _sync_company_lawyers(self, company_id, crm_company_id):
+        try:
+            lawyers = await self.get_company_lawyers(company_id)  
+            if not lawyers:
+                logger.info(f"公司ID {company_id} 没有关联律师，跳过律师同步")
+                return
+            logger.info(f"开始同步公司ID {company_id} 的 {len(lawyers)} 名律师")
+            lawyer_tasks = [
+                self._sync_single_lawyer(lawyer, crm_company_id)
+            for lawyer in lawyers
+        ]
+            results = await asyncio.gather(*lawyer_tasks, return_exceptions=True)
+            success_count = 0
+            for i, result in enumerate(results):
+                lawyer = lawyers[i]
+                if isinstance(result, Exception):
+                    self.lawyer_api_failure += 1
+                    logger.error(f"律师 {lawyer.name} (ID:{lawyer.id}) 同步失败: {str(result)}")
+                else:
+                    success_count += 1
+                    self.lawyer_api_success += 1
+                    logger.debug(f"律师 {lawyer.name} 同步成功")
+        
+            logger.info(f"公司ID {company_id} 律师同步完成: 成功 {success_count}/{len(lawyers)} 名")
+            return success_count
+        
+        except Exception as e:
+            logger.error(f"同步公司ID {company_id} 的律师时发生错误: {str(e)}", exc_info=True)
+            return 0
+            
+            
+    #批量同步信息            
+    async def sync_companies(self, sync_source: str):  
+        try:  
+            companies = await self.get_company_data(sync_source)
+            logger.info(f"获取到 {len(companies)} 家公司数据需要同步")
+            if not companies:
+                logger.info("没有需要同步的公司数据")
+                return {'company_count': 0, 'lawyer_count': 0, 'results': []}
+            # 创建公司同步任务列表
+            company_tasks = [self._sync_single_company(company) for company in companies]
+            company_results = await gather(*company_tasks, return_exceptions=True)
+
+            results = []
+            for i, result in enumerate(company_results):
+                company = companies[i]
+                if isinstance(result, Exception):
+                    self.company_api_failure += 1
+                    # 记录详细异常信息，包括公司名称和异常堆栈
+                    logger.error(f"公司 {company.name} 同步任务失败: {str(result)}", exc_info=True)
+                elif result is not None:
+                    
+                    self.company_api_success += 1
+                    results.append(result)
+
+            return {
+                'company_count': self.company_api_success,
+                'lawyer_count': self.lawyer_api_success,
+                'results': results
+            }
+        except Exception as e:
+            # 捕获整个同步过程中的未预料异常
+            logger.critical(f"公司同步流程发生致命错误: {str(e)}", exc_info=True)
+            # 可以选择重新抛出异常或返回错误状态
+            raise
+                
