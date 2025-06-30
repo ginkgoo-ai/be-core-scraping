@@ -30,22 +30,30 @@ class SyncTriggerService(TriggerService):
             raise ValueError(f"任务ID不存在: {task_id}")
          # 解析任务参数
         sync_source = task.scrapy_id
-        sync_service = CRMIntegrationService(self.db_session)
-        result = await sync_service.sync_companies(sync_source)
-        task.status = TaskStatus.COMPLETED
-        task.completion_time = int(time.time())
-        self.db_session.commit()  # 确保状态变更持久化
-        companies_count = result.get('company_count', 0)
-        lawyers_count = result.get('lawyer_count', 0)
-        logger.info(f"同步任务完成: {task_id}, 同步公司数量: {companies_count}, 同步律师数量: {lawyers_count}")
-        return {
-            "task_id": task_id,
-            "status": "completed",
-            "result": {
-                "companies_synced": companies_count,
-                "lawyers_synced": lawyers_count
-            }
-        }
+        # sync_service = CRMIntegrationService(self.db_session)
+        # result = await sync_service.sync_companies(sync_source)
+        async with CRMIntegrationService(self.db_session) as sync_service:
+            try:
+                logger.info(f"开始同步公司数据: {sync_source}") 
+                result = await sync_service.sync_companies(sync_source)
+                logger.info(f"同步任务执行完成: {result}") 
+                task.status = TaskStatus.COMPLETED
+                task.completion_time = int(time.time())
+                self.db_session.commit()  # 确保状态变更持久化
+                companies_count = result.get('company_count', 0)
+                lawyers_count = result.get('lawyer_count', 0)
+                logger.info(f"同步任务完成: {task_id}, 同步公司数量: {companies_count}, 同步律师数量: {lawyers_count}")
+                return {
+                    "task_id": task_id,
+                    "status": "completed",
+                    "result": {
+                        "companies_synced": companies_count,
+                        "lawyers_synced": lawyers_count
+                    }
+                }
+            except Exception as e:
+                logger.error(f"同步公司数据失败: {str(e)}", exc_info=True)  # 记录完整堆栈
+                raise 
 
        
         # # 根据参数获取数据并同步
