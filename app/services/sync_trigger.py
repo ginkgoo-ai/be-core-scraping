@@ -36,7 +36,6 @@ class SyncTriggerService(TriggerService):
             try:
                 logger.info(f"开始同步公司数据: {sync_source}") 
                 result = await sync_service.sync_companies(sync_source)
-                logger.info(f"同步任务执行完成: {result}") 
                 task.status = TaskStatus.COMPLETED
                 task.completion_time = int(time.time())
                 self.db_session.commit()  # 确保状态变更持久化
