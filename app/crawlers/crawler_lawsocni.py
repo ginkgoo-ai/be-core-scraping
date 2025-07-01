@@ -157,7 +157,7 @@ class CrawlerLawsocni(BaseCrawler):
                 }  for lawyer_name in firm['solicitors'] if lawyer_name.strip()]
             }
             companies.append(company)
-            logger.debug(f"格式化公司数据: {company['name']}, 律师数量: {len(company['lawyers'])}")
+            logger.info(f"格式化公司数据: {company['name']}, 律师数量: {len(company['lawyers'])}")
         logger.info(f"数据格式化完成，共 {len(companies)} 家公司，{sum(len(c['lawyers']) for c in companies)} 名律师")
         return {'companies': companies}
 

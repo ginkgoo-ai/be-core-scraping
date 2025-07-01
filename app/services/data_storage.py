@@ -29,8 +29,6 @@ class DataStorageService:
     wait=wait_exponential(multiplier=1, min=2, max=10)
     )
     async def _commit_batch(db, batch_size, company_counter, result):
-
-        logger.debug(f"数据库会话类型: {type(db)}, 类型名称: {db.__class__.__name__}, 模块: {db.__class__.__module__}")
         if db is None:
             logger.error("数据库会话对象为None，无法提交事务")
             raise ValueError(" DB session object 'db' cannot be None")
@@ -66,9 +64,7 @@ class DataStorageService:
         返回:
             包含操作结果的字典
         """
-        logger.debug(f"进入save_crawled_data，接收的db类型: {type(db)}, id: {id(db)}")
-        if db is None:
-            logger.debug("save_crawled_data接收到None作为数据库会话！")
+        
         result = {
             'source': source,
             'company_success': 0,
