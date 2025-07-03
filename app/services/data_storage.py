@@ -10,18 +10,6 @@ from sqlalchemy import select
 class DataStorageService:
     # 数据存储服务类，负责将清洗后的爬虫数据存储到数据库，增强了错误处理和性能优化
 
-    # @staticmethod
-    # @asynccontextmanager
-    # async def session_scope():
-    #     async with AsyncSession(engine) as session:  # 使用异步会话
-    #         try:
-    #             yield session
-    #             await session.commit()  # 异步提交
-    #         except Exception:
-    #             await session.rollback()  # 异步回滚
-    #             raise
-    #         finally:
-    #             await session.close()
 
     @staticmethod   
     @retry(
@@ -184,4 +172,133 @@ class DataStorageService:
         except Exception as e:
             db.rollback()
             logger.error(f"Unexpected error during data save: {str(e)}", exc_info=True)
+            raise
+
+
+    @staticmethod
+    async def save_lawyers(
+        db,
+        source: str,
+        lawyers: list = None,
+        batch_size: int = 30
+    ) -> dict:
+        """
+        单独保存律师数据到数据库，自动关联或创建公司
+        参数:
+            db: 数据库会话对象
+            source: 数据来源标识
+            lawyers: 律师数据列表
+            batch_size: 批量提交大小
+        返回:
+            包含操作结果的字典
+        """
+        result = {
+            'source': source,
+            'company_success': 0,
+            'company_failed': 0,
+            'lawyer_success': 0,
+            'lawyer_failed': 0,
+            'batches_committed': 0,
+            'total_lawyers': len(lawyers) if lawyers else 0
+        }
+
+        if db is None:
+            raise ValueError("Database session 'db' cannot be None")
+        if not lawyers:
+            logger.warning(f"No lawyer data to save from {source}")
+            return result
+
+        current_batch = []
+        lawyer_counter = 0
+
+        try:
+            for lawyer_data in lawyers:
+                try:
+                    # 1. 提取公司信息并查找/创建公司
+                    company_name = lawyer_data.get('redundant_info', {}).get('company_name')
+                    if not company_name:
+                        logger.error("Missing company_name in lawyer data")
+                        result['lawyer_failed'] += 1
+                        continue
+
+                    # 2. 查找公司（优先按名称，可扩展其他字段）
+                    stmt = select(Company).where(Company.name == company_name)
+                    query_result = db.execute(stmt)
+                    company = query_result.scalars().first()
+
+                    # 3. 公司不存在则创建（最小化字段集）
+                    
+                    if not company:
+                        logger.info(f"Creating new company for lawyer: {company_name}")
+                        company = Company(
+                            name=company_name,
+                            source_name=source,
+                            domains=['auto-created'],
+                            redundant_info={'auto_created': True}  # 标记自动创建
+                        )
+                        logger.debug(f"新增公司信息: {company}")
+                        db.add(company)
+                        db.flush()  # 获取company.id
+                        result['company_success'] += 1
+                    else:
+                        logger.debug(f"Found existing company: {company_name} (ID: {company.id})")
+
+                    # 4. 准备律师数据（添加公司关联）
+                    lawyer_data['company_id'] = company.id
+                    lawyer_data['source_name'] = source
+
+                    # 5. 查找现有律师
+                    stmt = select(Lawyer).where(
+                        Lawyer.name == lawyer_data.get('name'),
+                        Lawyer.company_id == company.id
+                    )
+                    existing_lawyer = db.execute(stmt).scalars().first()
+
+                    # 6. 更新或创建律师
+                    if existing_lawyer:
+                        logger.info(f"Updating lawyer: {lawyer_data['name']} (ID: {existing_lawyer.id})")
+                        for key, value in lawyer_data.items():
+                            if value is not None:
+                                setattr(existing_lawyer, key, value)
+                        current_batch.append(existing_lawyer)
+                    else:
+                        logger.info(f"Creating lawyer: {lawyer_data['name']}")
+                        new_lawyer = Lawyer(** lawyer_data)
+                        current_batch.append(new_lawyer)
+
+                    result['lawyer_success'] += 1
+                    lawyer_counter += 1
+
+                    # 7. 批次提交
+                    if lawyer_counter % batch_size == 0:
+                        await DataStorageService._commit_batch(db, batch_size, lawyer_counter, result)
+                        current_batch.clear()
+
+                except IntegrityError as e:
+                    db.rollback()
+                    logger.error(f"Integrity error for lawyer {lawyer_data.get('name')}: {str(e)}")
+                    result['lawyer_failed'] += 1
+                except SQLAlchemyError as e:
+                    db.rollback()
+                    logger.error(f"Database error for lawyer {lawyer_data.get('name')}: {str(e)}")
+                    result['lawyer_failed'] += 1
+                except Exception as e:
+                    db.rollback()
+                    logger.error(f"Unexpected error for lawyer {lawyer_data.get('name')}: {str(e)}")
+                    result['lawyer_failed'] += 1
+
+            # 提交剩余数据
+            if current_batch:
+                await DataStorageService._commit_batch(db, batch_size, lawyer_counter, result)
+
+            logger.info(f"Lawyer storage completed. Results: {result}")
+            return result
+
+        except SQLAlchemyError as e:
+            db.rollback()
+            logger.error(f"Batch commit failed: {str(e)}")
+            raise
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Data save failed: {str(e)}")
             raise

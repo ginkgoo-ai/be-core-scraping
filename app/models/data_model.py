@@ -15,7 +15,7 @@ class Company(Base):
     __table_args__ = {'schema': settings.DB_SCHEMA}
 
     id = Column(BigInteger, primary_key=True)
-    domains = Column(String(255), unique=True)
+    domains = Column(String(255))
     name = Column(String(255))
     company_phone = Column(String(100))
     source_name = Column(String(50))
@@ -126,6 +126,13 @@ class SourceName(str,Enum):
 #定义scrapy的类型   
 class ScrapyId(str, Enum):
     SCRAPY_A = "crawler_lawsocni"
-    SCRAPY_B = "scrapy_b"
+    SCRAPY_B = "crawler_lawsociety"
     SCRAPY_C = "crawler_lawscot"
     SCRAPY_ADVISER_FINDER = "crawler_adviser_finder"
+    SCRAPY_HTML_PARSER = "crawler_html_parser"
+
+class PageType(str, Enum):
+    COMPANY_LIST = "company_list"
+    COMPANY_DETAIL = "company_detail"
+    LAWYER_LIST = "lawyer_list"
+    LAWYER_DETAIL = "lawyer_detail"
