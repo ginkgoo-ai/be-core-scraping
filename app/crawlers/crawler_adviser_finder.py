@@ -88,7 +88,7 @@ class CrawlerAdviserFinder(BaseCrawler):
             # 确保会话关闭
             if not self.session.closed:
                 await self.session.close()
-                logger.debug("aiohttp client session已关闭")
+
   
 
 

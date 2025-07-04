@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     CRM_API_KEY: str      
     CRM_COMPANY_FIELD_MAPPING: Dict[str, str] = {}  
     CRM_LAWYER_FIELD_MAPPING: Dict[str, str] = {}
+    # 法律事务所配置
+    LAWSOCIETY_BASE_URL: str
+
 
     
 

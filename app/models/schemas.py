@@ -3,7 +3,7 @@ from datetime import datetime,timezone
 from typing import Optional, Dict, Any, Union
 from pydantic import BaseModel
 from typing import Generic, Optional, TypeVar
-from app.models.data_model import SyncType, TaskStatus, TaskType, ScrapyId
+from app.models.data_model import SyncType, TaskStatus, TaskType, ScrapyId,PageType
 from pydantic import BaseModel, field_validator
 
 
@@ -51,6 +51,11 @@ class SyncTriggerResponse(BaseModel):
     trigger_time: int
     sync_source:str
 
+class HtmlParseRequest(BaseModel):
+    scrapy_id: ScrapyId = Field(..., description="爬虫ID，支持lawsocni_spider/crawler_lawscot")
+    page_type: PageType = Field(..., description="页面类型: company_list, lawyer_detail, lawyer_list")
+    crawler_engine: str = Field(..., description="爬虫引擎，支持scrapy/ai")
+    html_chunk: str = Field(..., description="HTML片段内容")
 #  task 查询结构
 class TaskResponse(BaseModel,TimeConvertMixin):
     task_id: int

@@ -153,7 +153,6 @@ class CrawlerLawscot(BaseCrawler):
             'expected_solicitors': len(lawyer_ids)
         }
         self.firm_data.append(firm_entry)
-        logger.debug(f"公司 {firm_id} 的 律师列表：{lawyer_ids}")
         # 异步处理律师数据
         if lawyer_ids:
             logger.info(f"开始处理公司 {firm_id} 的 {len(lawyer_ids)} 个律师数据")
@@ -168,7 +167,7 @@ class CrawlerLawscot(BaseCrawler):
     async def _fetch_and_parse_lawyer(self, firm_id: str, lawyer_id: str) -> None:    
         """获取并解析律师详情"""
         try:
-            logger.debug(f"开始异步获取律师 {lawyer_id} 详情")
+            logger.info(f"开始异步获取律师 {lawyer_id} 详情")
             url = f"{self.base_url}/GetSolicitorDetail?id={lawyer_id}"
             # 使用异步HTTP客户端而非同步方法
             content = await self._fetch_page_content(url)
@@ -178,7 +177,6 @@ class CrawlerLawscot(BaseCrawler):
             
             data = json.loads(content)
             self._parse_lawyer_data(data, firm_id)
-            logger.debug(f"律师 {lawyer_id} 解析成功")
         except Exception as e:
             logger.error(f"律师 {lawyer_id} 处理失败: {str(e)}", exc_info=True)
 

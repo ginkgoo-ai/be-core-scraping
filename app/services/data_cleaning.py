@@ -1,11 +1,58 @@
 from typing import Dict, Any, Optional
 from app.core.ai_client import AIClient
+from lxml import html 
+from urllib.parse import urlparse
+import re
 
 class DataCleaningService:
     """数据清洗服务，负责处理爬虫获取的原始数据"""
     
     def __init__(self):
         self.ai_client = AIClient()
+    
+    @staticmethod
+    def extract_number(text: str) -> int:
+        """从文本中提取数字（公共方法）
+        Args:
+            text: 包含数字的文本字符串
+        Returns:
+            提取到的整数，无数字时返回0
+        """
+        match = re.search(r'\d+', text)
+        return int(match.group()) if match else 0
+
+    @staticmethod
+    def extract_domain(url: str) -> str:
+        """从URL中提取域名（公共方法）
+        Args:
+            url: 完整URL字符串
+        Returns:
+            纯域名（不带协议和路径），空URL返回空字符串
+        """
+        if not url:
+            return ''
+        # 使用urllib.parse解析URL（更健壮）
+        parsed_url = urlparse(url.lower())
+        # 处理无协议的URL情况
+        domain = parsed_url.netloc or parsed_url.path.split('/')[0]
+        return domain
+    
+    @staticmethod
+    def safe_extract(tree: html.HtmlElement, xpath: str) -> str:
+        """安全提取单个元素文本
+
+        Args:
+            tree: lxml HTML元素对象
+            xpath: XPath表达式
+
+        Returns:
+            提取到的文本内容或空字符串
+        """
+        elements = tree.xpath(xpath)
+        if elements:
+            return elements[0].strip() if isinstance(elements[0], str) else elements[0].text.strip()
+        return ''
+    
     
     def clean_website_a_data(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
         """清洗网站A的数据"""

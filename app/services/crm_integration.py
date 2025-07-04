@@ -1,5 +1,5 @@
 
-import aiohttp
+import aiohttp 
 from app.core.config import settings
 from app.core.logger import logger
 from app.models.data_model import Company, Lawyer,SourceName
@@ -18,7 +18,7 @@ class CRMIntegrationService:
         self.executor = ThreadPoolExecutor(max_workers=5)  # 初始化线程池
         self.session = None
         #attio API限制请求频次25/s
-        self.company_semaphore = asyncio.Semaphore(5)  # company级并发控制
+        self.company_semaphore = asyncio.Semaphore(15)  # company级并发控制
         self.lawyer_semaphore = asyncio.Semaphore(15)     # lawyer级并发控制
         self.attio_api_base = settings.CRM_URL
         self.attio_token = settings.CRM_API_KEY
@@ -32,7 +32,7 @@ class CRMIntegrationService:
         self.lawyer_api_failure = 0
         
     @retry(
-        stop=stop_after_attempt(3),  # 最大重试次数
+        stop=stop_after_attempt(5),  # 最大重试次数
         wait=wait_exponential(multiplier=1, min=1, max=10),  # 指数退避
         retry=retry_if_exception_type((ValueError, aiohttp.ClientError)),
     )
@@ -84,26 +84,37 @@ class CRMIntegrationService:
         timeout = aiohttp.ClientTimeout(total=30)
         full_url = f"{self.attio_api_base}/{endpoint}"
         method_lower = method.lower()
+        max_retries = 5
+        retry_count = 0
         if method.lower() not in ['put', 'post']:
                     logger.error(f"CRM API请求方式不对: 实际请求：{method}，仅支持put/post")
                     raise ValueError(f"Unsupported HTTP method: {method}")
-        try:   
+        try:
             session_method = getattr(self.session, method_lower)
-            async with session_method(full_url, json=data, headers=self.headers,timeout=timeout) as response:
-                if response.status == 429:   # 处理429速率限制错误
-                    retry_after = self._parse_retry_after(response.headers.get('Retry-After', '1'))
-                    logger.warning(f"API速率限制触发，将在{retry_after}秒后重试")
-                    await asyncio.sleep(retry_after)
-                    raise aiohttp.ClientError(f"Rate limited, retry after {retry_after}s")
-                
-                if response.status >= 400:
-                    error_details = await response.text()
-                    logger.error(f"API请求失败: {response.status}，详情: {error_details}")
-                response.raise_for_status() 
-                return await response.json()
-        # except ClientResponseError as e:
-        #     logger.error(f"CRM API请求体: {json.dumps(data, indent=2, ensure_ascii=False)}")
-        #     logger.error(f"CRM API请求失败: 状态码{response.status_code}, 响应内容{response.text}")
+            while retry_count < max_retries:   
+                async with session_method(full_url, json=data, headers=self.headers,timeout=timeout) as response:
+                    if response.status == 429:   # 处理429速率限制错误
+                        retry_after = self._parse_retry_after(response.headers.get('Retry-After', '1'))
+                        logger.warning(f"API速率限制触发，将在{retry_after}秒后重试(第{retry_count+1}次)")
+                        await asyncio.sleep(retry_after)
+                        retry_count += 1
+                        continue
+                        
+                    if response.status >= 400:
+                        error_details = await response.text()
+                        logger.error(f"API请求失败: {response.status}，详情: {error_details}")
+                        response.raise_for_status() 
+                    return await response.json()
+            raise aiohttp.ClientError(f"达到最大重试次数{max_retries}次，API请求仍然失败")
+        
+        except aiohttp.ClientResponseError as e:
+            response_text = await e.response.text() if e.response else "无响应内容"
+            logger.error(
+                f"API请求失败: 状态码={e.status}, 原因={e.message}, "
+                f"响应内容={response_text}",  
+                exc_info=True
+            )
+            raise 
         except asyncio.TimeoutError:
                 logger.error(f"Attio API请求超时: {full_url}")
                 raise  # 重新抛出以让上层处理
@@ -167,8 +178,9 @@ class CRMIntegrationService:
                 field_mapping.get("areas_of_law", "areas_of_law"): areas_of_law,
                 field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
                 field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
-                field_mapping.get("regulated_body", "regulated_body"): SourceName[company.source_name.upper()].value,
-                field_mapping.get("team_count", "team_count"): self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
+                field_mapping.get("regulated_body", "regulated_body"): [SourceName[company.source_name.upper()].value],
+                # field_mapping.get("team_count", "team_count"): self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
+                field_mapping.get("company_address", "company_address"): company.company_address if company.company_address else "",
             }
         }
     }
@@ -183,7 +195,7 @@ class CRMIntegrationService:
                 field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
                 field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
                 field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
-                field_mapping.get("regulated_body", "regulated_body"): SourceName[lawyer.source_name.upper()].value,
+                # field_mapping.get("regulated_body", "regulated_body"): SourceName[lawyer.source_name.upper()].value,
                 field_mapping.get("company", "company"): [{
                         "target_object": "companies",
                         "target_record_id": crm_company_id
@@ -261,7 +273,7 @@ class CRMIntegrationService:
                 else:
                     success_count += 1
                     self.lawyer_api_success += 1
-                    logger.debug(f"律师 {lawyer.name} 同步成功")
+                    logger.info(f"律师 {lawyer.name} 同步成功")
         
             logger.info(f"公司ID {company_id} 律师同步完成: 成功 {success_count}/{len(lawyers)} 名")
             return success_count

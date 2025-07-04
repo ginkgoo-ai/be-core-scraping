@@ -27,7 +27,6 @@ class CrawlerTriggerService(TriggerService):
                 start_time=int(time.time()),
                 create_date=int(time.time())
             )
-            logger.debug(f'创建任务对象: {vars(new_task)}')  
             self.db_session.add(new_task)
             self.db_session.commit()
             self.db_session.refresh(new_task)

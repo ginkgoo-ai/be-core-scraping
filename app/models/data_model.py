@@ -15,7 +15,7 @@ class Company(Base):
     __table_args__ = {'schema': settings.DB_SCHEMA}
 
     id = Column(BigInteger, primary_key=True)
-    domains = Column(String(255), unique=True)
+    domains = Column(String(255))
     name = Column(String(255))
     company_phone = Column(String(100))
     source_name = Column(String(50))
@@ -118,14 +118,23 @@ class SyncType(str, Enum):
     LAWYER = "lawyer"
     
 class SourceName(str,Enum):
-    CRAWLER_LAWSOCNI = "Law Society of Northern Ireland"
-    CRAWLER_LAWSCOT = "Law Society of Scotland"
-    CRAWLER_ADVISER_FINDER = "Immigration Advice Authority"
-    
+    CRAWLER_LAWSOCNI = "569cc284-3679-4b07-9160-1c77938cc617"
+    CRAWLER_LAWSCOT = "e63fac76-47ba-4919-bf7c-9dbfd1c0c925"  #"Law Society of Scotland"
+    CRAWLER_ADVISER_FINDER = "4922d669-253d-4084-a444-ec4c1afb9047"#@"Immigration Advice Authority"
+    CRAWLER_LAWSOCIETY = "6288e233-2f16-4157-8105-487ef9d8b3ce"   #"The Law Society"
+    # SOURCE_TEST="4922d669-253d-4084-a444-ec4c1afb9047"
+    # NONE= 
     
 #定义scrapy的类型   
 class ScrapyId(str, Enum):
     SCRAPY_A = "crawler_lawsocni"
-    SCRAPY_B = "scrapy_b"
+    SCRAPY_B = "crawler_lawsociety"
     SCRAPY_C = "crawler_lawscot"
     SCRAPY_ADVISER_FINDER = "crawler_adviser_finder"
+    SCRAPY_HTML_PARSER = "crawler_html_parser"
+
+class PageType(str, Enum):
+    COMPANY_LIST = "company_list"
+    COMPANY_DETAIL = "company_detail"
+    LAWYER_LIST = "lawyer_list"
+    LAWYER_DETAIL = "lawyer_detail"
