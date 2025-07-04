@@ -121,6 +121,7 @@ class SourceName(str,Enum):
     CRAWLER_LAWSOCNI = "Law Society of Northern Ireland"
     CRAWLER_LAWSCOT = "Law Society of Scotland"
     CRAWLER_ADVISER_FINDER = "Immigration Advice Authority"
+    CRAWLER_LAWSOCIETY = "The Law Society"
     
     
 #定义scrapy的类型   

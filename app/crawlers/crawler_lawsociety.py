@@ -9,15 +9,21 @@ from app.services.data_cleaning import DataCleaningService
 from lxml import html
 from app.models.data_model import PageType
 from app.services.data_storage import DataStorageService
+import aiohttp
+import httpx 
+from app.core.config import settings
+from urllib.parse import urljoin
 
 class CrawlerLawsociety(BaseCrawler):
     """HTML片段解析爬虫，处理不同类型页面的HTML片段"""
     source_name = "crawler_lawsociety"
     scrapy_id = "crawler_lawsociety"
 
+
     def __init__(self, db=None, scrapy_url: str = None, scrapy_params: dict = None):
         super().__init__(scrapy_url)
         self.db = db
+        self.base_url = settings.LAWSOCIETY_BASE_URL
         self.scrapy_params = scrapy_params or {}
         self.page_type = self.scrapy_params.get('page_type')
         self.html_chunk = self.scrapy_params.get('html_chunk')
@@ -28,6 +34,160 @@ class CrawlerLawsociety(BaseCrawler):
             PageType.LAWYER_LIST: self._parse_lawyer_list,
             PageType.LAWYER_DETAIL: self._parse_lawyer_detail
         }
+        raw_cookie = self.scrapy_params.get('cookies', '')
+        self.cookies = self._filter_large_cookies(raw_cookie)
+        
+    
+    
+    
+    async def crawl(self) -> Dict[str, Any]:
+        """执行HTML解析并处理分页逻辑"""
+        logger.info(f"开始解析页面，类型: {self.page_type}")
+
+        # 验证输入参数
+        if not self.html_chunk and not self.scrapy_url:
+            logger.error("未提供HTML片段或初始URL")
+            return self.results
+        if not self.page_type:
+            logger.error("未指定页面类型")
+            return self.results
+
+        # 获取解析方法
+        parse_method = getattr(self, f"_parse_{self.page_type}", None)
+        if not parse_method:
+            logger.error(f"不支持的页面类型: {self.page_type}")
+            return self.results
+
+        try:
+            # 根据页面类型选择处理方式
+            if self.page_type in [PageType.COMPANY_LIST, PageType.LAWYER_LIST]:
+                # 列表页启用分页爬取
+                await self._handle_pagination(self.scrapy_url, parse_method)
+            else:
+                # 详情页直接解析HTML片段
+                tree = html.fromstring(self.html_chunk)
+                parse_method(tree)
+
+            # 数据存储处理
+            if self.db:
+                if self.page_type == PageType.LAWYER_DETAIL:
+                    # 提取并保存律师数据
+                    lawyers = []
+                    for company in self.results['companies']:
+                        lawyers.extend(company.get('lawyers', []))
+                    await DataStorageService.save_lawyers(
+                        db=self.db,
+                        source=self.source_name,
+                        lawyers=lawyers
+                    )
+                else:
+                    # 保存公司数据
+                    await DataStorageService.save_crawled_data(
+                        db=self.db,
+                        source=self.source_name,
+                        companies=self.results['companies']
+                    )
+                logger.info("数据已成功保存到数据库")
+            else:
+                logger.warning("数据库会话未提供，无法保存数据")
+
+            logger.info(f"爬取完成，公司: {len(self.results['companies'])}, 律师: {len(self.results['lawyers'])}")
+            return self.results
+
+        except Exception as e:
+            logger.error(f"爬取过程发生错误: {str(e)}", exc_info=True)
+            return self.results
+        
+    def _filter_large_cookies(self, raw_cookie):
+        """
+        从原始Cookie中提取关键信息（仅保留fastoken）
+        参考tests/api/test.py中的extract_essential_cookies实现
+        """
+        # 1. 解析Cookie（支持字符串和字典两种输入格式）
+        cookie_dict = {}
+        if isinstance(raw_cookie, str) and raw_cookie:
+            for cookie in raw_cookie.split(';'):
+                if '=' in cookie:
+                    # 处理值中可能包含的'='符号
+                    key, value = cookie.strip().split('=', 1)
+                    cookie_dict[key] = value
+        elif isinstance(raw_cookie, dict):
+            cookie_dict = raw_cookie.copy()
+        else:
+            logger.warning("无效的Cookie格式，使用空Cookie")
+            return {}
+
+        # 2. 仅保留经过验证的关键Cookie（仅fastoken）
+        essential_keys = [
+            # 'ASP.NET_SessionId',
+            # 'ARRAffinity',
+            # 'ARRAffinitySameSite',
+            # '__RequestVerificationToken',
+            # 'fasST',
+            'fastoken'
+        ]
+        # essential_key = 'fastoken'
+        filtered_cookies = {
+            key: cookie_dict[key] 
+            for key in essential_keys 
+            if key in cookie_dict
+        }
+        # 3. 验证结果并记录日志
+        cookie_str = '; '.join([f'{k}={v}' for k, v in filtered_cookies.items()])
+        logger.info(f"Cookie过滤完成，保留项: {list(filtered_cookies.keys())}, 总长度: {len(cookie_str)}字节")
+
+        return filtered_cookies
+    
+    
+    import httpx
+
+    async def _fetch_page(self, url: str) -> str:
+        """发送HTTP请求，使用过滤后的Cookie（httpx实现）"""
+        try:
+            # 将过滤后的Cookie转换为字符串
+            cookie_str = '; '.join([f'{k}={v}' for k, v in self.cookies.items()])
+            logger.info(f"请求URL: {url}, Cookie: {cookie_str}")
+
+            # 配置请求头
+            headers = {
+                'Host': 'solicitors.lawsociety.org.uk',
+                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'accept-language': 'en,zh-CN;q=0.9,zh;q=0.8',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/138.0.0.0 Safari/537.36',
+                'sec-fetch-dest': 'document',
+                'sec-fetch-mode': 'navigate',
+                'sec-fetch-site': 'same-origin',
+                'upgrade-insecure-requests': '1',
+                'Connection': 'keep-alive',
+                'Cookie': cookie_str
+            }
+
+            # 创建httpx异步客户端，禁用默认Cookie管理
+            async with httpx.AsyncClient(
+                cookies=httpx.Cookies(),  # 空CookieJar，禁用自动Cookie处理
+                timeout=30.0,
+                limits=httpx.Limits(max_keepalive_connections=5),
+                follow_redirects=True
+            ) as client:
+                response = await client.get(
+                    url,
+                    headers=headers
+                )
+                response.raise_for_status()
+                return response.text
+
+        except httpx.HTTPStatusError as e:
+     
+            if e.response.status_code == 503:
+                # 针对503错误添加特殊处理逻辑
+                raise ValueError(f"请求失败：服务器暂时不可用(503)，请更新Cookies")
+            else:
+                raise ValueError(f"请求失败：状态码{e.response.status_code}")
+        except httpx.RequestError as e:
+            # 网络层面错误保持不变
+            raise ValueError(f"请求发生网络错误: {str(e)}")
+    
+            
     async def parse_html(self, page_type: PageType, html_chunk: str):
         """根据页面类型动态调用对应解析方法"""
         # 验证页面类型是否支持
@@ -40,58 +200,31 @@ class CrawlerLawsociety(BaseCrawler):
         # 动态调用对应解析方法
         return await self.parse_method_map[page_type](soup)
     
-    async def crawl(self) -> Dict[str, Any]:
-        """执行HTML解析"""
-        logger.info(f"开始解析HTML片段，页面类型: {self.page_type}")
-
-        if not self.html_chunk:
-            logger.error("未提供HTML片段")
-            return self.results
-
-        if not self.page_type:
-            logger.error("未指定页面类型")
-            return self.results
-
-        # 根据页面类型选择解析方法
-        parse_method = getattr(self, f"_parse_{self.page_type}", None)
-        if not parse_method:
-            logger.error(f"不支持的页面类型: {self.page_type}")
-            return self.results
-
-        try:
-            # 解析HTML
-            tree = html.fromstring(self.html_chunk)
+    async def _handle_pagination(self, initial_url: str, parse_method) -> None:
+        "处理分页逻辑，循环获取所有页面数据"
+        current_url = initial_url
+        page_num = 1
+        
+        while current_url:
+            logger.info(f"正在爬取第 {page_num} 页: {current_url}")
+            
+            # 获取页面内容
+            html_content = await self._fetch_page(current_url)
+            tree = html.fromstring(html_content)
+            
+            # 调用解析方法处理当前页数据
             parse_method(tree)
-            logger.info(f"HTML片段解析完成，公司: {len(self.results['companies'])}, 律师: {len(self.results['lawyers'])}")
-             # 根据页面类型选择存储方法
-            if self.db:
-                if self.page_type == PageType.LAWYER_DETAIL:
-                    # 提取律师列表（假设results['companies'][0]['lawyers']）
-                    lawyers = []
-                    for company in self.results['companies']:
-                        lawyers.extend(company.get('lawyers', []))
-                    await DataStorageService.save_lawyers(
-                        db=self.db,
-                        source=self.source_name,
-                        lawyers=lawyers
-                    )
-                else:
-                    # 公司列表/详情页使用原方法
-                    await DataStorageService.save_crawled_data(
-                        db=self.db,
-                        source=self.source_name,
-                        companies=self.results['companies']
-                    )
-                logger.info("数据已成功保存到数据库")
-            else:
-                logger.warning("数据库会话未提供，无法保存数据")
-                
             
-            
-            return self.results
-        except Exception as e:
-            logger.error(f"HTML解析失败: {str(e)}", exc_info=True)
-            return self.results
+            # 提取下一页URL
+            next_page = self._extract_next_page_url(tree)
+            current_url = urljoin(self.base_url, next_page) if next_page else None
+            page_num += 1
+           
+    
+    def _extract_next_page_url(self, tree: html.HtmlElement) -> str:
+        "从页面中提取下一页URL"
+        next_link = tree.xpath("//a[contains(text(), 'Next') or contains(@class, 'next-page')]/@href")
+        return next_link[0] if next_link else None
 
     def _parse_company_list(self, tree: html.HtmlElement) -> None:
         """解析公司列表页面，提取公司基本信息"""
@@ -120,10 +253,8 @@ class CrawlerLawsociety(BaseCrawler):
 
             # 提取网站域名
             website_elem = elem.xpath(".//li[contains(span/text(), 'Website')]/a")
-            original_website = website_elem[0].get('href', '') if website_elem else ""
-            domains = DataCleaningService.extract_domain(original_website) 
-            if not domains:
-                domains = []
+            original_website = website_elem[0].get('href', '') if website_elem else None
+            domains = DataCleaningService.extract_domain(original_website) if original_website else ''
 
             # 提取执业领域（Areas of practice）
             areas_panel = elem.xpath(".//div[contains(@class, 'info-panel') and .//span[contains(text(), 'Areas of practice')]]")
