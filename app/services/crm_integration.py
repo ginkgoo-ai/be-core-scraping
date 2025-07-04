@@ -178,8 +178,9 @@ class CRMIntegrationService:
                 field_mapping.get("areas_of_law", "areas_of_law"): areas_of_law,
                 field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
                 field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
-                field_mapping.get("regulated_body", "regulated_body"): SourceName[company.source_name.upper()].value,
-                field_mapping.get("team_count", "team_count"): self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
+                field_mapping.get("regulated_body", "regulated_body"): [SourceName[company.source_name.upper()].value],
+                # field_mapping.get("team_count", "team_count"): self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
+                field_mapping.get("company_address", "company_address"): company.company_address if company.company_address else "",
             }
         }
     }
@@ -194,7 +195,7 @@ class CRMIntegrationService:
                 field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
                 field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
                 field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
-                field_mapping.get("regulated_body", "regulated_body"): SourceName[lawyer.source_name.upper()].value,
+                # field_mapping.get("regulated_body", "regulated_body"): SourceName[lawyer.source_name.upper()].value,
                 field_mapping.get("company", "company"): [{
                         "target_object": "companies",
                         "target_record_id": crm_company_id

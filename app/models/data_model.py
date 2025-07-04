@@ -118,11 +118,12 @@ class SyncType(str, Enum):
     LAWYER = "lawyer"
     
 class SourceName(str,Enum):
-    CRAWLER_LAWSOCNI = "Law Society of Northern Ireland"
-    CRAWLER_LAWSCOT = "Law Society of Scotland"
-    CRAWLER_ADVISER_FINDER = "Immigration Advice Authority"
-    CRAWLER_LAWSOCIETY = "The Law Society"
-    
+    CRAWLER_LAWSOCNI = "569cc284-3679-4b07-9160-1c77938cc617"
+    CRAWLER_LAWSCOT = "e63fac76-47ba-4919-bf7c-9dbfd1c0c925"  #"Law Society of Scotland"
+    CRAWLER_ADVISER_FINDER = "4922d669-253d-4084-a444-ec4c1afb9047"#@"Immigration Advice Authority"
+    CRAWLER_LAWSOCIETY = "6288e233-2f16-4157-8105-487ef9d8b3ce"   #"The Law Society"
+    # SOURCE_TEST="4922d669-253d-4084-a444-ec4c1afb9047"
+    # NONE= 
     
 #定义scrapy的类型   
 class ScrapyId(str, Enum):
