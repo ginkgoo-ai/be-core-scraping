@@ -11,6 +11,7 @@ from datetime import timezone
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+from app.services.data_cleaning import DataCleaningService
 
 class CRMIntegrationService:
     def __init__(self, db_session):
@@ -152,59 +153,104 @@ class CRMIntegrationService:
         )
     
     def _build_company_data(self, company):
-        field_mapping = settings.CRM_COMPANY_FIELD_MAPPING
-        if not company.areas_of_law:
-            areas_of_law = ""
-        else:
+        try:
+            # 获取字段映射配置，处理配置缺失情况
+            field_mapping = settings.CRM_COMPANY_FIELD_MAPPING
+            if not isinstance(field_mapping, dict):
+                logger.warning("CRM_COMPANY_FIELD_MAPPING配置格式错误，使用默认映射")
+                field_mapping = {}
+
+            # 处理法律领域数据
+            if not company.areas_of_law:
+                areas_of_law = ""
+            else:
+                try:
+                    parsed = json.loads(company.areas_of_law)
+                    if isinstance(parsed, list):
+                        areas_of_law = ", ".join(parsed)
+                    else:
+                        areas_of_law = str(parsed)
+                except json.JSONDecodeError:
+                    areas_of_law = company.areas_of_law
+                except Exception as e:
+                    logger.error(f"解析areas_of_law时发生意外错误: {str(e)}")
+                    areas_of_law = ""
+
+            # 处理regulated_body枚举映射
             try:
-                # 尝试解析JSON数组格式（如：["Level 1 Immigration", ...]
-                parsed = json.loads(company.areas_of_law)
-                if isinstance(parsed, list):
-                    # 数组格式：转换为逗号分隔字符串
-                    areas_of_law = ", ".join(parsed)
-                else:
-                    # JSON但非数组：直接转为字符串
-                    areas_of_law = str(parsed)
-            except json.JSONDecodeError:
-                # 非JSON格式：视为已有的逗号分隔字符串
-                areas_of_law = company.areas_of_law
-        return {
-        "data": {
-            "values": {
-                field_mapping.get("name", "name"): company.name,
-                field_mapping.get("domains", "domains"): [company.domains] if company.domains else [],
-                field_mapping.get("company_email", "company_email"): company.company_email if company.company_email else "",
-                field_mapping.get("company_phone", "company_phone"): company.company_phone if company.company_phone else "",
-                field_mapping.get("areas_of_law", "areas_of_law"): areas_of_law,
-                field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
-                field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
-                field_mapping.get("regulated_body", "regulated_body"): [SourceName[company.source_name.upper()].value],
-                # field_mapping.get("team_count", "team_count"): self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
-                field_mapping.get("company_address", "company_address"): company.company_address if company.company_address else "",
+                source_name = company.source_name.upper()
+                regulated_body_value = [SourceName[source_name].value]
+            except KeyError:
+                logger.error(f"无效的source_name: {company.source_name}，无法映射到SourceName枚举")
+                regulated_body_value = []
+            except AttributeError:
+                logger.error(f"company对象缺少source_name属性")
+                regulated_body_value = []
+
+            # 构建并返回数据
+            return {
+                "data": {
+                    "values": {
+                        field_mapping.get("name", "name"): company.name,
+                        field_mapping.get("domains", "domains"): [company.domains] if company.domains else [],
+                        field_mapping.get("company_email", "company_email"): company.company_email or "",
+                        field_mapping.get("company_phone", "company_phone"): company.company_phone or "",
+                        field_mapping.get("areas_of_law", "areas_of_law"): areas_of_law,
+                        field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
+                        field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
+                        field_mapping.get("regulated_body", "regulated_body"): regulated_body_value,
+                        field_mapping.get("company_address", "company_address"): company.company_address or "",
+                        field_mapping.get('city'): DataCleaningService.extract_value_from_redundant_info(company.redundant_info, 'city'),
+                    }
+                }
             }
-        }
-    }
-        
+
+        except AttributeError as e:
+            logger.error(f"环境变量配置错误: 缺少必要的配置项 - {str(e)}")
+            raise ValueError(f"构建公司数据失败: 配置不完整") from e
+        except Exception as e:
+            logger.error(f"构建公司数据时发生未预期错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建公司数据失败: {str(e)}") from e
+
 
     def _build_lawyer_data(self, lawyer, crm_company_id):
-        field_mapping = settings.CRM_LAWYER_FIELD_MAPPING
-        return {
-        "data": {
-            "values": {
-                field_mapping.get("name", "name"): [{ "first_name": "","last_name": "","full_name": lawyer.name}],
-                field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
-                field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
-                field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
-                # field_mapping.get("regulated_body", "regulated_body"): SourceName[lawyer.source_name.upper()].value,
-                field_mapping.get("company", "company"): [{
-                        "target_object": "companies",
-                        "target_record_id": crm_company_id
-                    }]
-                
+        try:
+            # 获取字段映射配置，处理配置缺失情况
+            field_mapping = settings.CRM_LAWYER_FIELD_MAPPING
+            if not isinstance(field_mapping, dict):
+                logger.warning("CRM_LAWYER_FIELD_MAPPING配置格式错误，使用默认映射")
+                field_mapping = {}
+
+            # 验证公司ID有效性
+            if not crm_company_id:
+                logger.error("crm_company_id为空，无法关联公司")
+                raise ValueError("构建律师数据失败：缺少公司ID")
+
+            # 构建并返回数据
+            return {
+                "data": {
+                    "values": {
+                        field_mapping.get("name", "name"): [{ "first_name": "","last_name": "","full_name": lawyer.name}],
+                        field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
+                        field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
+                        field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
+                        field_mapping.get("company", "company"): [{
+                            "target_object": "companies",
+                            "target_record_id": crm_company_id
+                        }]
+                    }
+                }
             }
-        }
-    }
-        
+
+        except AttributeError as e:
+            logger.error(f"环境变量或对象属性错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建律师数据失败: 缺少必要配置或属性") from e
+        except KeyError as e:
+            logger.error(f"枚举或映射键错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建律师数据失败: 无效的映射键") from e
+        except Exception as e:
+            logger.error(f"构建律师数据时发生未预期错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建律师数据失败: {str(e)}") from e  
 
     #同步单个公司信息   
     async def _sync_single_company(self, company):

@@ -3,6 +3,7 @@ from app.core.ai_client import AIClient
 from lxml import html 
 from urllib.parse import urlparse
 import re
+import json
 
 class DataCleaningService:
     """数据清洗服务，负责处理爬虫获取的原始数据"""
@@ -136,3 +137,42 @@ class DataCleaningService:
         # 简单的日期格式检查
         # 可以使用AI进行更复杂的日期解析
         return date_str
+    
+    @staticmethod
+    def extract_value_from_redundant_info(
+    redundant_info: Optional[Any], 
+    key: str, 
+    case_sensitive: bool = False   
+) -> Optional[str]:
+        """从冗余信息中提取指定key的值
+        Args:
+            redundant_info: 可能包含目标值的冗余数据（字典或JSON字符串）
+            key: 要提取的节点键名
+        Returns:
+            提取到的字符串值（自动去除首尾空格）或None
+        """
+        if not redundant_info or not key:
+            return None
+
+        # 处理JSON字符串格式的冗余信息
+        if isinstance(redundant_info, str):
+            try:
+                redundant_info = json.loads(redundant_info)
+            except json.JSONDecodeError:
+                return None
+
+        # 确保是字典类型
+        if not isinstance(redundant_info, dict):
+            return None
+        
+        # 大小写不敏感查询逻辑
+        if case_sensitive:
+            value = redundant_info.get(key)
+        else:
+            # 构建小写键映射
+            lower_key = key.lower()
+            value = next((v for k, v in redundant_info.items() if k.lower() == lower_key), None)
+
+        # 提取并验证值
+        value = redundant_info.get(key)
+        return value.strip() if isinstance(value, str) and value.strip() else None
