@@ -152,18 +152,18 @@ class DataCleaningService:
             提取到的字符串值（自动去除首尾空格）或None
         """
         if not redundant_info or not key:
-            return None
+            return ""
 
         # 处理JSON字符串格式的冗余信息
         if isinstance(redundant_info, str):
             try:
                 redundant_info = json.loads(redundant_info)
             except json.JSONDecodeError:
-                return None
+                return ""
 
         # 确保是字典类型
         if not isinstance(redundant_info, dict):
-            return None
+            return ""
         
         # 大小写不敏感查询逻辑
         if case_sensitive:
@@ -175,4 +175,4 @@ class DataCleaningService:
 
         # 提取并验证值
         value = redundant_info.get(key)
-        return value.strip() if isinstance(value, str) and value.strip() else None
+        return value.strip() if isinstance(value, str) and value.strip() else ""
