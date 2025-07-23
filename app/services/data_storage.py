@@ -6,6 +6,7 @@ from app.core.logger import logger
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from datetime import datetime
 
 class DataStorageService:
     # 数据存储服务类，负责将清洗后的爬虫数据存储到数据库，增强了错误处理和性能优化
@@ -57,6 +58,10 @@ class DataStorageService:
             'source': source,
             'company_success': 0,
             'company_failed': 0,
+            'company_new': 0,     
+            'company_update': 0,
+            'lawyer_new': 0,      
+            'lawyer_update': 0,  
             'lawyer_success': 0,
             'lawyer_failed': 0,
             'batches_committed': 0,
@@ -87,13 +92,16 @@ class DataStorageService:
 
                     # 保存/更新公司（使用批量操作优化）
                     if existing_company:
+                        result['company_update'] += 1
                         logger.info(f"Updating existing company: {company_data.get('name')} (ID: {existing_company.id})")
                         for key, value in company_data.items():
                             if value is not None:
                                 setattr(existing_company, key, value)
+                        existing_company.update_date = int(datetime.now().timestamp())
                         company_id = existing_company.id
                         current_batch.append(existing_company)
                     else:
+                        result['company_new'] += 1
                         logger.info(f"Creating new company: {company_data.get('name')}")
                         new_company = Company(**company_data)
                         db.add(new_company)
@@ -118,12 +126,14 @@ class DataStorageService:
                             existing_lawyer = query_result.scalars().first()                         
                             
                             if existing_lawyer:
+                                result['lawyer_update'] += 1
                                 logger.info(f"Updating existing lawyer: {lawyer_data.get('name')} (ID: {existing_lawyer.id})")
                                 for key, value in lawyer_data.items():
                                     if value is not None:
                                         setattr(existing_lawyer, key, value)
                                 lawyer_objs.append(existing_lawyer)
                             else:
+                                result['lawyer_new'] += 1
                                 logger.info(f"Creating new lawyer: {lawyer_data.get('name')}")
                                 new_lawyer = Lawyer(**lawyer_data)
                                 lawyer_objs.append(new_lawyer)
