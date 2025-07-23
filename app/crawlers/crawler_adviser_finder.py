@@ -9,7 +9,7 @@ from typing import Optional, Dict, List,Any
 from app.core.config import settings
 from app.core.logger import logger
 from app.crawlers.base_crawler import BaseCrawler
-
+from app.services.data_cleaning import DataCleaningService
 
 class CrawlerAdviserFinder(BaseCrawler):
     source_name = "crawler_adviser_finder" # Immigration Advice Authority 
@@ -209,9 +209,8 @@ class CrawlerAdviserFinder(BaseCrawler):
                                     # 联系方式
                                     'company_phone': acc_obj.get('Phone') or loc_obj.get('Phone_Number__c'),
                                     'company_email': primary_location_r.get('Primary_Email__c'),
-                                    'domains': acc_obj.get('Website', '').strip(),
+                                    'domains': DataCleaningService.clean_domain(acc_obj.get('Website', '').strip()),
                                     'source_name':self.source_name,
-                                    # 地址信息
                                     'company_address': billing_address.get('street') or loc_obj.get('Street__c'),
                                     
                                     # 其他信息
@@ -230,7 +229,7 @@ class CrawlerAdviserFinder(BaseCrawler):
                                         'fee_type': acc_obj.get('Fee_Paying_Type__c'),
                                         
                                         # 地址信息
-                                        'city': billing_address.get('city') or loc_obj.get('City__c'),
+                                        'city': billing_address.get('city') or loc_obj.get('City__c'), 
                                         'state': billing_address.get('state'),
                                         'postal_code': billing_address.get('postalCode') or loc_obj.get('Postcode__c'),
                                     }

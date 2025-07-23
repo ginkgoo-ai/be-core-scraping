@@ -101,7 +101,7 @@ class CrawlerLawsociety(BaseCrawler):
     def _filter_large_cookies(self, raw_cookie):
         """
         从原始Cookie中提取关键信息（仅保留fastoken）
-        参考tests/api/test.py中的extract_essential_cookies实现
+
         """
         # 1. 解析Cookie（支持字符串和字典两种输入格式）
         cookie_dict = {}
@@ -138,8 +138,6 @@ class CrawlerLawsociety(BaseCrawler):
 
         return filtered_cookies
     
-    
-    import httpx
 
     async def _fetch_page(self, url: str) -> str:
         """发送HTTP请求，使用过滤后的Cookie（httpx实现）"""
