@@ -1,141 +1,145 @@
 old_value,new_value,slug_id
-Administrative & Public Law,Administrative & Public Law,7840db8b-f8e4-4840-b607-bb12e7a96837
-Administrative and public law,Administrative & Public Law,7840db8b-f8e4-4840-b607-bb12e7a96837
-INQUESTS & INQUIRIES,Administrative & Public Law,7840db8b-f8e4-4840-b607-bb12e7a96837
-JUDICIAL REVIEW,Administrative & Public Law,7840db8b-f8e4-4840-b607-bb12e7a96837
-Judicial review,Administrative & Public Law,7840db8b-f8e4-4840-b607-bb12e7a96837
-Judicial review - legal aid,Administrative & Public Law,7840db8b-f8e4-4840-b607-bb12e7a96837
-CRIMINAL INJURIES AND CRIMINAL DAMAGE COMPENSATION,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-Clinical negligence,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-MENTAL HEALTH,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-Mental health,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-Mental health - legal aid,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-Personal injury,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-Personal injury - RTA,Accident & Injury,c478e883-daf2-4ea2-b922-860dfe9501e3
-CHARITIES LAW,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-COMMERCIAL LITIGATION,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Commercial litigation,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Commercial property,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Company and commercial,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Construction,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Contract,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Corporate finance,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Mergers and acquisitions,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-INTELLECTUAL PROPERTY,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Information Technology,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Intellectual property,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-LICENSING,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Licensing gaming and betting,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-"Media, IT and intellectual property",Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-"Media, entertainment and sport",Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-Tax - Company and commercial,Corporate & Commercial,62c3be0f-31f9-493c-a1f9-5d6272c9e628
-CONSUMER LAW,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f 
-Consumer,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f 
-Consumer - financial services,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-Consumer - goods and services,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-Consumer and civil rights,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-Defamation,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-EQUALITY & DISCRIMINATION,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-Human rights,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-LIBEL & SLANDER,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-Travel and tourism,Consumer & Civil Rights,9ab536b1-0a83-4b3b-a1e4-8c5992e1682f
-Advocacy,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-CRIMINAL LAW,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - domestic violence,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - fraud,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - general,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - juvenile,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - legal aid,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - motoring,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-Crime - sex,Criminal Justice,1d837efb-9a06-485a-974c-c29c0518d608
-BANKRUPTCY & INSOLVENCY,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-DEBT & MONEY PROBLEMS,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Debt and bankruptcy - personal,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Debt recovery,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Financial services,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-INSURANCE,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Insolvency and restructuring - business,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Insurance,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Money and debt,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Private client - disputed trusts,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Private client - trusts,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-"TRUSTS, TAX AND FINANCIAL PLANNING",Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-Tax - personal,Finance & Insolvency,92724753-f9e3-47ac-9448-36d562018eec
-ALTERNATIVE DISPUTE RESOLUTION,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Dispute resolution,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Dispute resolution - civil mediation,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Dispute resolution - commercial mediation,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-ENFORCEMENT OF JUDGEMENTS,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Litigation - general,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Litigation - small claims,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Litigation - tickets and fines,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-PROFESSIONAL NEGLIGENCE,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Professional negligence,Dispute Resolution,98249123-8bc3-479c-b797-f68284333cf9
-Children,Children,55de5f57-5426-4bf1-9969-e498e823d672
-Community care - legal aid,Children,55de5f57-5426-4bf1-9969-e498e823d672
-EDUCATION,Children,55de5f57-5426-4bf1-9969-e498e823d672
-Education,Children,55de5f57-5426-4bf1-9969-e498e823d672
-FAMILY LAW - CHILDREN,Children,55de5f57-5426-4bf1-9969-e498e823d672
-EMPLOYMENT LAW & TRIBUNALS,Employment,9a105b71-2649-416d-8567-5fdf85a3d6c2
-Employment,Employment,9a105b71-2649-416d-8567-5fdf85a3d6c2
-ENVIRONMENTAL LAW,"Energy, Environment & Infrastructure",20f837ed-6282-43dd-9a5d-aae8051a976e
-Energy and natural resources,"Energy, Environment & Infrastructure",20f837ed-6282-43dd-9a5d-aae8051a976e
-"Energy, utilities and transport","Energy, Environment & Infrastructure",20f837ed-6282-43dd-9a5d-aae8051a976e
-Environment,"Energy, Environment & Infrastructure",20f837ed-6282-43dd-9a5d-aae8051a976e
-PLANNING,"Energy, Environment & Infrastructure",20f837ed-6282-43dd-9a5d-aae8051a976e
-Planning,"Energy, Environment & Infrastructure",20f837ed-6282-43dd-9a5d-aae8051a976e
-Benefits and allowances,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-DOMESTIC VIOLENCE,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family - mediation,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-FAMILY LAW - GENERAL,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family - divorce and separation,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family - general,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family - legal aid,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family - marriage and civil partnerships,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family and relationships,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Family public law - legal aid,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-LPA - Health and Welfare,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-LPA - Property and Affairs,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Lasting power of attorney,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Private client - disputed probate,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Private client - disputed wills,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Private client - international,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Private client - Probate,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Private client - Wills,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Social welfare health benefits,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-WELFARE RIGHTS,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-"WILLS, PROBATES & INTESTACY",Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-Wills,Family,353cd1cf-0362-45c1-bb76-5ad510becab7
-CONVEYANCING - COMMERCIAL,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-CONVEYANCING - OVERSEAS AND TIMESHARES,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-CONVEYANCING - RESIDENTIAL,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-Conveyancing - residential,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-HOUSING,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-"Houses, property and neighbours",Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-LAND & PROPERTY DISPUTES,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-Landlord and tenant - commercial,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-Landlord and tenant - residential,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-Neighbour disputes,Property & Neighbours,bbad5ad4-265f-4b86-ace5-7d2265d258ea
-Immigration,Immigration – General,731acfec-e01f-4d66-b023-578d791b5efe
-IMMIGRATION & ASYLUM,Immigration – General,731acfec-e01f-4d66-b023-578d791b5efe
-Immigration - general,Immigration – General,731acfec-e01f-4d66-b023-578d791b5efe
-Immigration - asylum,Immigration – Asylum,e7126d27-0452-4434-826e-e94de01d602c
-Immigration - nationality and citizenship,Immigration – Nationality & Citizenship,02a6372d-e7df-4ae0-81d0-c3e66619de50
-Level 1 (EUSS) Immigration,Immigration – Level 1,9b6c735f-04ed-4c8e-acba-9605aed45a5a
-Level 1 Immigration,Immigration – Level 1,9b6c735f-04ed-4c8e-acba-9605aed45a5a
-Level 2 Immigration,Immigration – Level 2,9d42828c-b7d9-4d64-8e12-0229ac20e64e
-Level 3 Immigration,Immigration – Level 3,5b1f3914-c441-42a2-87ab-9d0737656b24
-Level 3 JRCM Immigration,Immigration – Level 3,5b1f3914-c441-42a2-87ab-9d0737656b24
-Level 1 Asylum and Protection,Asylum – Level 1,78c75316-156c-4b03-a760-9554bfca2b95
-Level 2 Asylum and Protection,Asylum – Level 2,bb633919-63c2-42fd-9c3c-d4a9b11d16a6
-Level 3 Asylum and Protection,Asylum – Level 3,2366e295-5eee-4554-8b12-5c46a69ff371
-Level 3 JRCM Asylum and Protection,Asylum – Level 3,2366e295-5eee-4554-8b12-5c46a69ff371
-AGRICULTURE AND FARMING,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Agriculture,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Aviation,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Charities,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Charities law,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Cross-border,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-European & International Law,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Military,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
-Pensions,Specialist Areas,d0074879-1cb2-4c48-8a83-fb19c94899e9
+Administrative & Public Law,Administrative & Public Law,3f83e7b7-91e5-4079-93c9-e81bacb8c8f8
+Administrative and public law,Administrative & Public Law,3f83e7b7-91e5-4079-93c9-e81bacb8c8f8
+INQUESTS & INQUIRIES,Administrative & Public Law,3f83e7b7-91e5-4079-93c9-e81bacb8c8f8
+JUDICIAL REVIEW,Administrative & Public Law,3f83e7b7-91e5-4079-93c9-e81bacb8c8f8
+Judicial review,Administrative & Public Law,3f83e7b7-91e5-4079-93c9-e81bacb8c8f8
+Judicial review - legal aid,Administrative & Public Law,3f83e7b7-91e5-4079-93c9-e81bacb8c8f8
+CRIMINAL INJURIES AND CRIMINAL DAMAGE COMPENSATION,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+Clinical negligence,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+MENTAL HEALTH,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+Mental health,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+Accident and injury,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+Mental health - legal aid,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+Personal injury,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+Personal injury - RTA,Accident & Injury,b78c8b1d-5cdd-4511-befb-fd3026c29e59
+CHARITIES LAW,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+COMMERCIAL LITIGATION,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Commercial litigation,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Commercial property,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Company and commercial,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Construction,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Contract,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Corporate finance,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Mergers and acquisitions,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+INTELLECTUAL PROPERTY,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Information Technology,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Intellectual property,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+LICENSING,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Licensing gaming and betting,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+"Media, IT and intellectual property",Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+"Media, entertainment and sport",Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+Tax - Company and commercial,Corporate & Commercial,3ed8cc6d-2c6e-4f80-aed9-f17df71f3904
+CONSUMER LAW,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd 
+Consumer,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd 
+Consumer - financial services,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+Consumer - goods and services,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+Consumer and civil rights,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+Defamation,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+EQUALITY & DISCRIMINATION,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+Human rights,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+LIBEL & SLANDER,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+Travel and tourism,Consumer & Civil Rights,7ce66950-e882-4ffd-b079-af9ad4e693cd
+Advocacy,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+CRIMINAL LAW,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - domestic violence,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - fraud,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - general,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - juvenile,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - legal aid,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - motoring,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime - sex,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+Crime,Criminal Justice,71e31842-efe9-423a-b073-1d374f8fcd75
+BANKRUPTCY & INSOLVENCY,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+DEBT & MONEY PROBLEMS,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Debt and bankruptcy - personal,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Debt recovery,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Financial services,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+INSURANCE,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Insolvency and restructuring - business,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Insurance,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Money and debt,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Private client - disputed trusts,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Private client - trusts,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+"TRUSTS, TAX AND FINANCIAL PLANNING",Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+Tax - personal,Finance & Insolvency,d9165232-bb74-403a-b218-a6e6f4088b87
+ALTERNATIVE DISPUTE RESOLUTION,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Dispute resolution,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Dispute resolution - civil mediation,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Dispute resolution - commercial mediation,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+ENFORCEMENT OF JUDGEMENTS,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Litigation - general,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Litigation - small claims,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Litigation - tickets and fines,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+PROFESSIONAL NEGLIGENCE,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Professional negligence,Dispute Resolution,4ec27519-c3bb-4721-b069-4ee607849a89
+Children,Children,9d4ed226-700a-451a-b1fa-7e35021e0e2c
+Community care - legal aid,Children,9d4ed226-700a-451a-b1fa-7e35021e0e2c
+EDUCATION,Children,9d4ed226-700a-451a-b1fa-7e35021e0e2c
+Education,Children,9d4ed226-700a-451a-b1fa-7e35021e0e2c
+FAMILY LAW - CHILDREN,Children,9d4ed226-700a-451a-b1fa-7e35021e0e2c
+EMPLOYMENT LAW & TRIBUNALS,Employment,993f22b3-4413-454d-929e-c75c5b51012a
+Employment,Employment,993f22b3-4413-454d-929e-c75c5b51012a
+ENVIRONMENTAL LAW,"Energy, Environment & Infrastructure",482e6ed2-3192-48b7-ac10-83fa2a423f7a
+Energy and natural resources,"Energy, Environment & Infrastructure",482e6ed2-3192-48b7-ac10-83fa2a423f7a
+"Energy, utilities and transport","Energy, Environment & Infrastructure",482e6ed2-3192-48b7-ac10-83fa2a423f7a
+Environment,"Energy, Environment & Infrastructure",482e6ed2-3192-48b7-ac10-83fa2a423f7a
+PLANNING,"Energy, Environment & Infrastructure",482e6ed2-3192-48b7-ac10-83fa2a423f7a
+Planning,"Energy, Environment & Infrastructure",482e6ed2-3192-48b7-ac10-83fa2a423f7a
+Benefits and allowances,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+DOMESTIC VIOLENCE,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family - mediation,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+FAMILY LAW - GENERAL,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family - divorce and separation,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family - general,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family - legal aid,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family - marriage and civil partnerships,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family and relationships,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Family public law - legal aid,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+LPA - Health and Welfare,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+LPA - Property and Affairs,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Lasting power of attorney,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Private client - disputed probate,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Private client - disputed wills,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Private client - international,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Private client - Probate,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Private client - Wills,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Social welfare health benefits,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+WELFARE RIGHTS,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+"WILLS, PROBATES & INTESTACY",Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+Wills,Family,cde3795a-3d2c-43d1-bbf7-ef1d5c6bb924
+CONVEYANCING - COMMERCIAL,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+CONVEYANCING - OVERSEAS AND TIMESHARES,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+CONVEYANCING - RESIDENTIAL,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+Conveyancing - residential,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+HOUSING,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+"Houses, property and neighbours",Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+Houses,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+property and neighbours,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+LAND & PROPERTY DISPUTES,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+Landlord and tenant - commercial,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+Landlord and tenant - residential,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+Neighbour disputes,Property & Neighbours,828f95eb-00eb-4e43-9ee0-3b0dd12dad6e
+Immigration,Immigration – General,5dcaa19e-999a-4a34-8e96-4d1c7cf8dbbe
+IMMIGRATION & ASYLUM,Immigration – General,5dcaa19e-999a-4a34-8e96-4d1c7cf8dbbe
+Immigration - general,Immigration – General,5dcaa19e-999a-4a34-8e96-4d1c7cf8dbbe
+Immigration - asylum,Immigration – Asylum,f19e0023-efb3-4925-a41e-b8be6006c099
+Immigration - nationality and citizenship,Immigration – Nationality & Citizenship,4248ca9b-ad76-400b-a061-c198adda7407
+Level 1 (EUSS) Immigration,Immigration – Level 1,8ddf9062-a2b9-4451-902f-4d2e04bba593
+Level 1 Immigration,Immigration – Level 1,8ddf9062-a2b9-4451-902f-4d2e04bba593
+Level 2 Immigration,Immigration – Level 2,86327691-d61f-46cd-9306-91ee49e0c6ba
+Level 3 Immigration,Immigration – Level 3,a5b08bae-aedc-442b-920b-6cf4cd9f1da1
+Level 3 JRCM Immigration,Immigration – Level 3,a5b08bae-aedc-442b-920b-6cf4cd9f1da1
+Level 1 Asylum and Protection,Asylum – Level 1,c3e9426d-6e40-4539-a091-46bed920ea52
+Level 2 Asylum and Protection,Asylum – Level 2,8fbe6f7f-4c1d-4007-9995-54df37528a8c
+Level 3 Asylum and Protection,Asylum – Level 3,976c9cfb-39a6-4dfc-80bb-155f87d4d525
+Level 3 JRCM Asylum and Protection,Asylum – Level 3,976c9cfb-39a6-4dfc-80bb-155f87d4d525
+AGRICULTURE AND FARMING,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Agriculture,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Aviation,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Charities,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Charities law,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Cross-border,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+European & International Law,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Military,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51
+Pensions,Specialist Areas,6c37a957-98c8-4387-a803-a45c5b2d1a51

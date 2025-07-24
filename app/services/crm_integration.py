@@ -215,19 +215,22 @@ class CRMIntegrationService:
             return {
                 "data": {
                     "values": {
+                        field_mapping.get("source_id", "source_id"): company.id,
                         field_mapping.get("name", "name"): company.name,
                         field_mapping.get("domains", "domains"): [company.domains] if company.domains else [],
                         field_mapping.get("company_email", "company_email"): company.company_email or "",
                         field_mapping.get("company_phone", "company_phone"): company.company_phone or "",
-                        field_mapping.get("areas_of_law", "areas_of_law"): areas_str,
+                        # field_mapping.get("areas_of_law", "areas_of_law"): areas_str,
                         field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
                         field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
                         field_mapping.get("regulated_body", "regulated_body"): regulated_body_value,
                         field_mapping.get("company_address", "company_address"): company.company_address or "",
                         field_mapping.get("area_of_law", "area_of_law"): area_ids,
-                        field_mapping.get('city'): DataCleaningService.extract_value_from_redundant_info(company.redundant_info, 'city'),
+                        # field_mapping.get("city", "primary_location"): DataCleaningService.extract_value_from_redundant_info(company.redundant_info, 'city')
+                        field_mapping.get("primary_location", "primary_location"): company.company_address or "",
                     }
                 }
+                
             }
 
         except AttributeError as e:
@@ -259,11 +262,12 @@ class CRMIntegrationService:
             return {
                 "data": {
                     "values": {
+                        field_mapping.get("source_id", "source_id"): lawyer.id,
                         field_mapping.get("name", "name"): [{ "first_name": "","last_name": "","full_name": lawyer.name}],
                         field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
                         field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
                         field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
-                        field_mapping.get("area_of_law", "area_of_law"): area_ids,
+                        field_mapping.get("practice_areas", "practice_areas"): area_ids,
                         field_mapping.get("company", "company"): [{
                             "target_object": "companies",
                             "target_record_id": crm_company_id
