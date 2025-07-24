@@ -11,6 +11,10 @@ from datetime import timezone
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+from app.services.data_cleaning import DataCleaningService
+from sqlalchemy.dialects import postgresql
+from pathlib import Path
+import csv
 
 class CRMIntegrationService:
     def __init__(self, db_session):
@@ -30,6 +34,8 @@ class CRMIntegrationService:
         self.company_api_failure = 0
         self.lawyer_api_success = 0
         self.lawyer_api_failure = 0
+        self.data_cleaning = DataCleaningService()
+       
         
     @retry(
         stop=stop_after_attempt(5),  # 最大重试次数
@@ -44,7 +50,7 @@ class CRMIntegrationService:
         self.executor.shutdown(wait=True)
         if self.session:
             await self.session.close()
-        
+    
     #429重试逻辑    
     def _parse_retry_after(self, retry_after_header):
         try:
@@ -71,8 +77,40 @@ class CRMIntegrationService:
         return 1
 
 
-    
-    #定义attio请求方法
+    async def _query_company_record(self, company_data):
+        """查询CRM中是否存在匹配的公司记录"""
+        query_endpoint = "objects/companies/records/query"
+        try:
+            response = await self.send_attio_request(
+                query_endpoint,
+                company_data,
+                method='post'
+            )
+            # 返回第一条匹配记录的record_id
+            if response and response.get('data'):
+                return response['data'][0]['id']['record_id']
+            return None
+        except Exception as e:
+            logger.error(f"{query_endpoint}查询公司记录失败: {str(e)}")
+            return None
+ 
+    async def _query_lawyer_record(self, lawyer_data):
+        """查询CRM中是否存在匹配的律师记录"""
+        query_endpoint = "objects/people/records/query"
+        try:
+            response = await self.send_attio_request(
+                query_endpoint,
+                lawyer_data,
+                method='post'
+            )
+            # 返回第一条匹配记录的record_id
+            if response and response.get('data'):
+                return response['data'][0]['id']['record_id']
+            return None
+        except Exception as e:
+            logger.error(f"{query_endpoint}查询律师记录失败: {str(e)}")
+            return None
+ 
     async def send_attio_request(self, endpoint, data, method='post'):
         """
         发送Attio API请求，包含速率限制和错误重试机制
@@ -86,8 +124,8 @@ class CRMIntegrationService:
         method_lower = method.lower()
         max_retries = 5
         retry_count = 0
-        if method.lower() not in ['put', 'post']:
-                    logger.error(f"CRM API请求方式不对: 实际请求：{method}，仅支持put/post")
+        if method.lower() not in ['put', 'post','patch']:
+                    logger.error(f"CRM API请求方式不对: 实际请求：{method}，仅支持put/post/patch")
                     raise ValueError(f"Unsupported HTTP method: {method}")
         try:
             session_method = getattr(self.session, method_lower)
@@ -102,7 +140,7 @@ class CRMIntegrationService:
                         
                     if response.status >= 400:
                         error_details = await response.text()
-                        logger.error(f"API请求失败: {response.status}，详情: {error_details}")
+                        logger.error(f"API请求失败: {response.status}，URL: {endpoint}，参数: {data}，详情: {error_details}")
                         response.raise_for_status() 
                     return await response.json()
             raise aiohttp.ClientError(f"达到最大重试次数{max_retries}次，API请求仍然失败")
@@ -152,86 +190,147 @@ class CRMIntegrationService:
         )
     
     def _build_company_data(self, company):
-        field_mapping = settings.CRM_COMPANY_FIELD_MAPPING
-        if not company.areas_of_law:
-            areas_of_law = ""
-        else:
-            try:
-                # 尝试解析JSON数组格式（如：["Level 1 Immigration", ...]
-                parsed = json.loads(company.areas_of_law)
-                if isinstance(parsed, list):
-                    # 数组格式：转换为逗号分隔字符串
-                    areas_of_law = ", ".join(parsed)
-                else:
-                    # JSON但非数组：直接转为字符串
-                    areas_of_law = str(parsed)
-            except json.JSONDecodeError:
-                # 非JSON格式：视为已有的逗号分隔字符串
-                areas_of_law = company.areas_of_law
-        return {
-        "data": {
-            "values": {
-                field_mapping.get("name", "name"): company.name,
-                field_mapping.get("domains", "domains"): [company.domains] if company.domains else [],
-                field_mapping.get("company_email", "company_email"): company.company_email if company.company_email else "",
-                field_mapping.get("company_phone", "company_phone"): company.company_phone if company.company_phone else "",
-                field_mapping.get("areas_of_law", "areas_of_law"): areas_of_law,
-                field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
-                field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
-                field_mapping.get("regulated_body", "regulated_body"): [SourceName[company.source_name.upper()].value],
-                # field_mapping.get("team_count", "team_count"): self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).count(),
-                field_mapping.get("company_address", "company_address"): company.company_address if company.company_address else "",
-            }
-        }
-    }
-        
+        try:
+            # 获取字段映射配置，处理配置缺失情况
+            field_mapping = settings.CRM_COMPANY_FIELD_MAPPING
+            if not isinstance(field_mapping, dict):
+                logger.warning("CRM_COMPANY_FIELD_MAPPING配置格式错误，使用默认映射")
+                field_mapping = {}
 
-    def _build_lawyer_data(self, lawyer, crm_company_id):
-        field_mapping = settings.CRM_LAWYER_FIELD_MAPPING
-        return {
-        "data": {
-            "values": {
-                field_mapping.get("name", "name"): [{ "first_name": "","last_name": "","full_name": lawyer.name}],
-                field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
-                field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
-                field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
-                # field_mapping.get("regulated_body", "regulated_body"): SourceName[lawyer.source_name.upper()].value,
-                field_mapping.get("company", "company"): [{
-                        "target_object": "companies",
-                        "target_record_id": crm_company_id
-                    }]
+            # 处理法律领域数据
+            areas_of_law = self.data_cleaning.clean_company_areas_of_law(company.areas_of_law)
+            areas_str = ", ".join([item['new_value'] for item in areas_of_law]) if areas_of_law else ""
+            area_ids = [item['slug_id'] for item in areas_of_law] if areas_of_law else []
+            try:
+                source_name = company.source_name.upper()
+                regulated_body_value = [SourceName[source_name].value]
+            except KeyError:
+                logger.error(f"无效的source_name: {company.source_name}，无法映射到SourceName枚举")
+                regulated_body_value = []
+            except AttributeError:
+                logger.error(f"company对象缺少source_name属性")
+                regulated_body_value = []
+
+            # 构建并返回数据
+            return {
+                "data": {
+                    "values": {
+                        field_mapping.get("source_id", "source_id"): company.id,
+                        field_mapping.get("name", "name"): company.name,
+                        field_mapping.get("domains", "domains"): [company.domains] if company.domains else [],
+                        field_mapping.get("company_email", "company_email"): company.company_email or "",
+                        field_mapping.get("company_phone", "company_phone"): company.company_phone or "",
+                        # field_mapping.get("areas_of_law", "areas_of_law"): areas_str,
+                        field_mapping.get("total_solicitors", "total_solicitors"): company.total_solicitors or 0,
+                        field_mapping.get("scottish_partners", "scottish_partners"): company.scottish_partners or 0,
+                        field_mapping.get("regulated_body", "regulated_body"): regulated_body_value,
+                        field_mapping.get("company_address", "company_address"): company.company_address or "",
+                        field_mapping.get("area_of_law", "area_of_law"): area_ids,
+                        # field_mapping.get("city", "primary_location"): DataCleaningService.extract_value_from_redundant_info(company.redundant_info, 'city')
+                        field_mapping.get("primary_location", "primary_location"): company.company_address or "",
+                    }
+                }
                 
             }
-        }
-    }
-        
+
+        except AttributeError as e:
+            logger.error(f"环境变量配置错误: 缺少必要的配置项 - {str(e)}")
+            raise ValueError(f"构建公司数据失败: 配置不完整") from e
+        except Exception as e:
+            logger.error(f"构建公司数据时发生未预期错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建公司数据失败: {str(e)}") from e
+
+
+    def _build_lawyer_data(self, lawyer, crm_company_id):
+        try:
+            # 获取字段映射配置，处理配置缺失情况
+            field_mapping = settings.CRM_LAWYER_FIELD_MAPPING
+            if not isinstance(field_mapping, dict):
+                logger.warning("CRM_LAWYER_FIELD_MAPPING配置格式错误，使用默认映射")
+                field_mapping = {}
+            #areas_of_law 清洗逻辑
+            practice_areas = self.data_cleaning.clean_lawyer_areas_of_law(lawyer.practice_areas)
+            areas_str = ", ".join([item['new_value'] for item in practice_areas]) if practice_areas else ""
+            area_ids = [item['slug_id'] for item in practice_areas] if practice_areas else []
+
+            # 验证公司ID有效性
+            if not crm_company_id:
+                logger.error("crm_company_id为空，无法关联公司")
+                raise ValueError("构建律师数据失败：缺少公司ID")
+
+            # 构建并返回数据
+            return {
+                "data": {
+                    "values": {
+                        field_mapping.get("source_id", "source_id"): lawyer.id,
+                        field_mapping.get("name", "name"): [{ "first_name": "","last_name": "","full_name": lawyer.name}],
+                        field_mapping.get("email", "email"): [lawyer.email_addresses] if lawyer.email_addresses else [],
+                        field_mapping.get("phone", "Telephone"): lawyer.telephone if lawyer.telephone else "",
+                        field_mapping.get("address", "address"): lawyer.address if lawyer.address else "",
+                        field_mapping.get("practice_areas", "practice_areas"): area_ids,
+                        field_mapping.get("company", "company"): [{
+                            "target_object": "companies",
+                            "target_record_id": crm_company_id
+                        }]
+                    }
+                }
+            }
+
+        except AttributeError as e:
+            logger.error(f"环境变量或对象属性错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建律师数据失败: 缺少必要配置或属性") from e
+        except KeyError as e:
+            logger.error(f"枚举或映射键错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建律师数据失败: 无效的映射键") from e
+        except Exception as e:
+            logger.error(f"构建律师数据时发生未预期错误: {str(e)}", exc_info=True)
+            raise ValueError(f"构建律师数据失败: {str(e)}") from e  
 
     #同步单个公司信息   
     async def _sync_single_company(self, company):
         try:
             async with self.company_semaphore:
                 company_endpoint = "objects/companies/records"
-                method = 'put' if company.domains else 'post'
-                endpoint = f"{company_endpoint}?matching_attribute=domains" if method == 'put' else company_endpoint
+                company_data = self._build_company_data(company)
+                record_id = None
+                if company.domains:
+                    method = 'put'
+                    endpoint = f"{company_endpoint}?matching_attribute=domains"
+                # 新逻辑：无domain时使用多字段查询匹配
+                else:
+                    # 构建律所判重查询参数
+                    field_mapping = settings.CRM_COMPANY_FIELD_MAPPING or {}
+                    query_filter = {
+                        field_mapping.get("name", "name"): company.name,
+                        field_mapping.get("regulated_body", "regulated_body"): 
+                            SourceName[company.source_name.upper()].value,
+                        field_mapping.get('city'): DataCleaningService.extract_value_from_redundant_info(
+                            company.redundant_info, 'city'
+                        )
+                    }
+                    # 过滤空值条件
+                    query_filter = {k: v for k, v in query_filter.items() if v not in [None, [], ""]}       
+                    record_id = await self._query_company_record({
+                        "filter": query_filter
+                    })
+                    if record_id:
+                        method = 'patch'
+                        endpoint = f"{company_endpoint}/{record_id}"
+                        logger.info(f"发送CRM Patch请求: {method.upper()} {endpoint}")
+                    else:
+                        method = 'post'
+                        endpoint = company_endpoint
                 response = await self.send_attio_request(
-                    endpoint,
-                    self._build_company_data(company),
-                    method=method
-                )
+                endpoint,
+                company_data,
+                method=method,
+            )
                 if response:
                     crm_company_id = response.get("data", {}).get("id", {}).get("record_id")
                     if not crm_company_id:
                         logger.error(f"公司 {company.name} 未获取到CRM ID")
                         return None
-
-                    # 同步公司关联的律师
-                    # lawyers = self.db_session.query(Lawyer).filter(Lawyer.company_id == company.id).all()
-                    await self._sync_company_lawyers(company.id, crm_company_id)
-                    # if lawyers:
-                    #     await self._sync_company_lawyers(lawyers, crm_company_id)
-                    # else:
-                    #    logger.info(f"公司 {company.name} 没有关联律师，跳过律师同步")
-                   
+                    await self._sync_company_lawyers(company.id, crm_company_id)                 
                     logger.info(f"公司 {company.name} 同步成功")
                     return response
                 return None
@@ -243,14 +342,35 @@ class CRMIntegrationService:
     async def _sync_single_lawyer(self, lawyer, crm_company_id):
         try:
             async with self.lawyer_semaphore:  # 使用律师专用信号量
+                record_id = None
                 lawyer_endpoint = "objects/people/records"
                 lawyer_data = self._build_lawyer_data(lawyer, crm_company_id)
-                method = 'put' if lawyer.email_addresses else 'post'
-                endpoint = f"{lawyer_endpoint}?matching_attribute=email_addresses" if method == 'put' else lawyer_endpoint
+                if lawyer.email_addresses:
+                    method = 'put'
+                    endpoint = f"{lawyer_endpoint}?matching_attribute=email_addresses" 
+                else:
+                    field_mapping = settings.CRM_LAWYER_FIELD_MAPPING or {}
+                    query_filter = {
+                        field_mapping.get("name", "name"): lawyer.name,
+                        field_mapping.get("company", "company"):{"target_record_id":crm_company_id} 
+                    }
+                    query_filter = {k: v for k, v in query_filter.items() if v not in [None, [], ""]}
+                    record_id = await self._query_lawyer_record({
+                        "filter": query_filter
+                    })
+                    if record_id:
+                        method = 'patch'
+                        endpoint = f"{lawyer_endpoint}/{record_id}"
+                        logger.info(f"发送CRM Patch请求: {method.upper()} {endpoint}")
+                    else:
+                        method = 'post'
+                        endpoint = lawyer_endpoint  
+               
                 return await self.send_attio_request(endpoint, lawyer_data, method=method)
         except Exception as e:
-            logger.error(f"同步律师 {lawyer.name} 时发生异常", exc_info=True)
+            logger.error(f"同步律师 {lawyer.name} 时发生异常{str(e)}", exc_info=True)
             raise
+
      #同步律师列表 
     async def _sync_company_lawyers(self, company_id, crm_company_id):
         try:

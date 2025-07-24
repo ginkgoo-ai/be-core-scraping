@@ -33,8 +33,11 @@ class Settings(BaseSettings):
     CRM_LAWYER_FIELD_MAPPING: Dict[str, str] = {}
     # 法律事务所配置
     LAWSOCIETY_BASE_URL: str
-
-
+    # CRM source 枚举
+    CRAWLER_LAWSOCNI_ID: str
+    CRAWLER_LAWSCOT_ID: str
+    CRAWLER_ADVISER_FINDER_ID: str
+    CRAWLER_LAWSOCIETY_ID: str
     
 
     class Config:

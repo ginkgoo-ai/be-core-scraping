@@ -112,11 +112,10 @@ class CrawlerLawsocni(BaseCrawler):
         firm_email = self._extract_email(tree)
         firm_phone = self._extract_phone(tree)
         firm_website = self._extract_website(tree)
-        firm_address = self._extract_address(tree)
-
-        # 提取人员和专业领域信息
+        firm_address, city = self._extract_address(tree)
         solicitors = self._extract_solicitors(tree)
         areas_of_expertise = self._extract_expertise(tree)
+        
 
         return {
             'name': firm_name,
@@ -125,7 +124,8 @@ class CrawlerLawsocni(BaseCrawler):
             'website': firm_website,
             'address': firm_address,
             'solicitors': solicitors,
-            'areas_of_expertise': areas_of_expertise
+            'areas_of_expertise': areas_of_expertise,
+            'city': city  # 添加城市信息
         }
 
     def _format_output(self) -> Dict[str, List[Dict[str, Any]]]:
@@ -140,6 +140,8 @@ class CrawlerLawsocni(BaseCrawler):
                 parsed_url = urlparse(website)
                 domain = parsed_url.netloc or parsed_url.path.split('/')[0]
                 domain = domain.lstrip('www.')
+            
+            
             # 公司数据
             company = {
                 'name': firm['name'],
@@ -149,6 +151,9 @@ class CrawlerLawsocni(BaseCrawler):
                 'domains': domain,
                 'areas_of_law': firm['areas_of_expertise'],
                 'source_name':self.source_name,
+                'redundant_info': {
+                    'city': firm['city']  # 添加城市信息
+                },
                 'lawyers': [{
                     'name': lawyer_name,
                     'practice_areas': firm['areas_of_expertise'],
@@ -196,16 +201,42 @@ class CrawlerLawsocni(BaseCrawler):
         return ''
 
     def _extract_address(self, tree: html.HtmlElement) -> str:
-        """使用XPath提取地址"""
+        """使用XPath提取地址并清理格式"""
         try:
-            address_elements = tree.xpath("//div[contains(@class, 'address')]")
-            if address_elements and isinstance(address_elements[0], html.HtmlElement):
-                address = address_elements[0].get('content', '').strip()
-                return address
+            import re
+            address_elements = tree.xpath("//address/text()")
+            # 合并文本节点并移除所有空白字符（包括换行和制表符）
+            address_parts = [re.sub(r'\s+', ' ', elem.strip()) for elem in address_elements if elem.strip()]
+            address = ' '.join(address_parts)
+            # 处理逗号前后的空格
+            address = re.sub(r'\s*,\s*', ', ', address)
+            # 处理连字符前后的空格（保留数字间的空格）
+            address = re.sub(r'(?<!\d)\s+-\s+(?!\d)', '-', address)
+            city = self._extract_city_from_address(address)
+            return address, city
         except Exception as e:
             self.logger.error(f"提取地址失败: {str(e)}")
             return ''
-
+    def _extract_city_from_address(self, address: str) -> str:
+        """从地址字符串中提取城市名"""
+        if not address:
+            return ''
+        # 按逗号分割地址并清洗空格
+        address_parts = [part.strip() for part in address.split(',') if part.strip()]
+        # 检测是否包含郡信息(不区分大小写)
+        has_county = any("county" in part.lower() for part in address_parts)
+        
+        # 根据地址格式确定城市位置
+        if len(address_parts) >= 2:
+            # 带郡格式取倒数第三位，否则取倒数第二位
+            city_index = -3 if (has_county and len(address_parts)>=3) else -2
+            city = address_parts[city_index]
+            
+            # 特殊情况处理：如果提取到的是郡则降级取前一位
+            if "county" in city.lower() and len(address_parts) > abs(city_index):
+                city = address_parts[city_index-1]
+            return city
+        return ''
     def _extract_solicitors(self, tree: html.HtmlElement) -> List[str]:
         """提取律师列表"""
         elements = tree.xpath("//span[@class='font-bold ']/text()") #这里Xpath的空格要保留，源站就是这样的

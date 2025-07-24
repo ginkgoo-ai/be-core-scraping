@@ -144,7 +144,7 @@ curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
   "scrapy_id": "crawler_lawsocni", 
   "scrapy_url": "string",  
   "scrapy_params": {
-    "postcode": "WC2N",  
+    "postcode": "WC2N",  # or city name  "London"
     "distance": 50,  
     "feeCharging": "Both",  
     "typeOfAdvice": "typeOfAdvice"  
@@ -153,9 +153,25 @@ curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
 }
 
 ```
-### 3.5 执行Sync 任务
+### 3.5 执行crawler_lawsociety爬虫任务
+- 需要注意，该网站服务器限制，一次最多只能获取400条数据
 #### 请求示例
+```bash
+curl -X POST "http://localhost:8989/api/v1/scrapy-trigger" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scrapy_id": "crawler_lawsociety",
+    "scrapy_url": "https://solicitors.lawsociety.org.uk/search/results?Pro=False&UmbrellaLegalIssue=LIUIMM&Location=London",
+    "scrapy_params": {
+      "page_type":"company_list" #必填 当前想要爬取的内容，目前只需要company_list
+      "cookies": XXXX, #手动访问页面，获取一个有效的cookie即可
+    }
+  }'
+```
 
+
+### 3.6 触发Sync任务
+#### 请求示例
 ```bash
 curl -X POST "http://localhost:8989/api/v1/sync-trigger" \
   -H "Content-Type: application/json" \

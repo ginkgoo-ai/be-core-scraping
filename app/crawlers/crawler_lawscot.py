@@ -8,6 +8,7 @@ from app.core.logger import logger
 from app.crawlers.base_crawler import BaseCrawler
 
 
+
 class CrawlerLawscot(BaseCrawler):
     """Lawscot网站爬虫实现，遵循项目标准爬虫接口"""
     source_name = "crawler_lawscot" #Law Society of Scotland
@@ -125,18 +126,19 @@ class CrawlerLawscot(BaseCrawler):
             'company_email': email,
             'company_phone': data.get('Telephone'),
             'company_address': data.get('FullAddress', '').replace('\r', ', '),
-            'areas_of_law': ", ".join([
-                c.get('Parent', {}).get('PublicDescription')
-                for c in data.get('CategoriesOfWork', [])
-                if c.get('Parent', {}).get('PublicDescription')
-            ]),
+            'areas_of_law': [
+                    c.get('Parent', {}).get('PublicDescription')
+                    for c in data.get('CategoriesOfWork', [])
+                    if c.get('Parent', {}).get('PublicDescription')
+                ],
             'total_solicitors': total_solicitors_num,
             'scottish_partners': scottish_partners_num,
             'domains': original_website,
             'redundant_info':{
-                'City': data.get('City'),
-                'Fax': data.get('Fax'),
-                'Postcode': data.get('Postcode')
+                # 'city': data.get('City'),
+                'city': data.get('City').title() if data.get('City') else None,
+                'fax': data.get('Fax'),
+                'postcode': data.get('Postcode')
                 } ,
             'source_name':self.source_name
         }
